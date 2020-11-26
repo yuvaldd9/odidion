@@ -5,6 +5,7 @@ import sys , os
 import time
 import database_handler as db
 import onion_encryption_decryption
+import json_handler
 
 #Encryption Decryption Funcs - START
 #Encryption Decryption Funcs - END
@@ -28,7 +29,14 @@ def connect_to_network(server_sock):
     handling the connection handshake between the dir server and the router
     """
     global ROUTER_NAME, PUBLIC_KEY, CLIENTS_PORT
-    connect_req = 'req:%s:%s:%s'%(ROUTER_NAME,CLIENTS_PORT,PUBLIC_KEY)
+    onion_router_details = 
+    {
+        "router_name" : ROUTER_NAME,
+        "ip" : socket.gethostname()
+        "public_key" : PUBLIC_KEY
+        "port" : CLIENTS_PORT
+    }
+    connect_req = json_handler.create_json(json_handler.ONION_ROUTER_REGISTER, onion_router_details)
     print '[connecting]'
     server_sock.send(connect_req)
     while 1:
@@ -53,28 +61,35 @@ def handle_keep_alive(server_sock):
     handle the keep alive connection between the server
     """
     #print server_sock.stillconnected()
-    
+    global LOAD_LEVEL, ROUTER_NAME
+    keep_alive_details = 
+    {
+        "load" : LOAD_LEVEL,
+        "router_name" : ROUTER_NAME
+    }
     while 1:
         try:
-            server_sock.send('[LIVE]-%s'%(LOAD_LEVEL,))
+            keep_alive_details = {
+                "load" : LOAD_LEVEL,
+                "router_name" : ROUTER_NAME
+            }
+            server_sock.send(json_handler.create_json(json_handler.ONION_ROUTER_KEEP_ALIVE, keep_alive_details))
             print 'send [LIVE] to server'
             while 1:
-                data = server_sock.recv(BUFSIZ)
+                data = json_handler.recieve_json(server_sock.recv(BUFSIZ))
+                
                 print 'got %s'%(data,)
                 if not data:
                     break
-                elif data[0] == "k":
-                    if len(data) > 1:
-                        updates = "".join(data.split('-')[1:])
-                        print updates
-                        updates = eval(updates)
-
-                        if add_service(updates):
-                            server_sock.send("update recieved")
+                elif data[state] == json_handler.ONION_ROUTER_KEEP_ALIVE:
+                    if data["args"]["new_service"]:
+                        if add_service(data["args"]["new_service"]):
+                            keep_alive_details["service_added"] = True
                     else:
                         print 'NO UPDATES'
-                break
-            time.sleep(10)
+                        if "service_added" in keep_alive_details.key():
+                            del keep_alive_details["service_added"]
+            time.sleep(4)
         except:
             print 'failed'
             break

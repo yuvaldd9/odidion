@@ -7,15 +7,18 @@ Manage the onion routers and the services in the net.
 
 load levels: according to the num of the client
 """
-
+from global_variables import *
+from json_codes import *
+import keep_alive_handler
+import handle_handshakes
 import database_handler as db
 from socket import *
 import thread
 import time
-from classes import *
+from onion_router_class import *
 import os
 import random
-
+import json
 
 #create/ connect to the databases - START
 #onion_db -> the ip, name, load of any onion router in the net
@@ -88,7 +91,7 @@ def refresh_router(router_name, load_level):
     refresh the data structures of the server - last seens
     """
     print '[%s sent Live Nofitication]'%(router_name)
-    print '[UPDATE LEVEL_LOAD] %s'%(db.set_data(ONION_ROUTERS_DB_DIR, '''UPDATE onion_routers SET load = %s'''%(load_level)))
+    print '[UPDATE LEVEL_LOAD] %s'%(db.set_data(ONION_ROUTERS_DB_DIR, '''UPDATE onion_routers SET load = %s, '''%(load_level)))
     last_seen = time.time()
     LAST_SEEN[router_name] = last_seen
     CONNECTED_ROUTERS[router_name][0].refresh_last_seen(last_seen)
@@ -203,7 +206,22 @@ def add_service(service_details):
 #handle database - END
 
 #handle communication - START
-
+def handle_communication(sock, addr):
+    global HANDLE_JSON
+    create_json = json_odidion_support.create_json
+    while 1:
+        data = clientsock.recv(BUFSIZ)
+        print "data:", data
+        if not data:
+            print "ending communication with",addr
+            break
+        try:
+            recieved_msg = json.loads(data)
+            response = create_json(HANDLE_JSON[recieved_msg["type"]](recieved_msg))
+            sock.send(bytes(response,encoding="utf-8"))
+        except:
+            print "[handle communication] - Error occured!"
+            break
 def handle_client_service(clientsock, addr):
     """
     handle client, service communication
@@ -329,29 +347,40 @@ SERVICES = {} # service name : service object
 SERVICES_UPDATES = {} #router name : the new service.
 create_databases()
 
+HANDLE_JSON = {
+    ONION_ROUTER_MSG_TYPE : handle_handshakes.handle_router,
+    SERVICE_MSG_TYPE : handle_handshakes.handle_service,
+    CLIENT_MSG_TYPE : handle_handshakes.handle_client
+}
 #communications:
 
 BUFSIZ = 4096
-HOST = '192.168.1.22' #'192.168.43.207' #'10.0.0.5'
+HOST = '10.0.0.3'#'192.168.1.22' #'192.168.43.207' #'10.0.0.5'
 
-ROUTERS_PORT = 50012
-CLIENTS_PORT = 50010
+"""ROUTERS_PORT = 50012
+    CLIENTS_PORT = 50010
 
-ROUTERS_ADDR = (HOST, ROUTERS_PORT)
-CLIENTS_ADDR = (HOST, CLIENTS_PORT)
+    ROUTERS_ADDR = (HOST, ROUTERS_PORT)
+    CLIENTS_ADDR = (HOST, CLIENTS_PORT)
 
-routers_sock = socket(AF_INET, SOCK_STREAM)
-clients_sock = socket(AF_INET, SOCK_STREAM)
+    routers_sock = socket(AF_INET, SOCK_STREAM)
+    clients_sock = socket(AF_INET, SOCK_STREAM)
 
-routers_sock.bind(ROUTERS_ADDR)
-clients_sock.bind(CLIENTS_ADDR)
+    routers_sock.bind(ROUTERS_ADDR)
+    clients_sock.bind(CLIENTS_ADDR)
 
-routers_sock.listen(2)
-clients_sock.listen(2)
-#communications - end
+    routers_sock.listen(2)
+    clients_sock.listen(2)
+    #communications - end
 
-#managing the routers:
-thread.start_new_thread(manage_routers, (routers_sock,))
+    #managing the routers:
+    thread.start_new_thread(manage_routers, (routers_sock,))
+    """
+
+PORT = 50010
+ADDR = (HOST, PORT)
+main_sock = socket(AF_INET, SOCK_STREAM)
+main_sock.listen(2)
 
 #for the clients
 while True:
@@ -359,6 +388,6 @@ while True:
     this loop is waiting both for clients and service(because of the lack of communication with the directory server)
     """
     print '[waiting for connection from clients\ new registers]'
-    clientsock, addr = clients_sock.accept()
+    clientsock, addr = main_sock.accept()
     print addr, '[connected]'
-    thread.start_new_thread(handle_client_service, (clientsock, addr))
+    thread.start_new_thread(handle_communication, (clientsock, addr))

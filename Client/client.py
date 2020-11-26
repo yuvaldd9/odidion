@@ -2,7 +2,7 @@ import socket
 from scapy.all import *
 import onion_packet_handler
 import sys , os
-
+import json_handler
 
 if sys.stdout != sys.__stdout__:
     sys.stdout = sys.__stdout__
@@ -46,11 +46,11 @@ def packet_trace(routers):
 #handle onion-routing - END
 
 #communication with the server - START
-UDP_IP = '192.168.1.22' #'192.168.43.207' #'10.0.0.5'
+UDP_IP = '10.0.0.3'#'192.168.1.22' #'192.168.43.207' #'10.0.0.5'
 UDP_PORT = 50100
 UDP_ADDR = (UDP_IP, UDP_PORT)
 
-DIR_SERVER_IP = '192.168.1.22' #'192.168.43.207' #'10.0.0.5'
+DIR_SERVER_IP = '10.0.0.3'#'192.168.1.22' #'192.168.43.207' #'10.0.0.5'
 DIR_SERVER_PORT = 50010
 BUFSIZ = 4096 
 DIR_SERVER_ADDR = (DIR_SERVER_IP, DIR_SERVER_PORT)
@@ -58,19 +58,24 @@ DIR_SERVER_ADDR = (DIR_SERVER_IP, DIR_SERVER_PORT)
 server_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server_sock.connect(DIR_SERVER_ADDR)
 has_done = False
+
+
 while 1:
     onion_url = "POC SERVICE - ERAN IS SUCH A KING"#raw_input("please enter the url->")
     print ('req:%s'%(onion_url,))
-    server_sock.send(('req:%s'%(onion_url,)))
+    server_sock.send(json_handler.create_json(onion_url))
 
     while not has_done:
         
-        data = server_sock.recv(BUFSIZ)      
-        if data == 'FAILED': 
+        data = json_handler.recieve_json(server_sock.recv(BUFSIZ))      
+        if data["state"] == json_handler.STATE_FAILED: 
             print 'Check your url'
             break
-        COMMUNICATION_DETAILS = eval(data)
-        if manage_communication(UDP_ADDR, COMMUNICATION_DETAILS):
+        elif data["state"] == json_handler.STATE_SEND_AGAIN:
+            server_sock.send(json_handler.create_json(onion_url))
+            pass
+
+        if manage_communication(UDP_ADDR, data["args"]):
             print 'done'
         else:
             print 'faoled'

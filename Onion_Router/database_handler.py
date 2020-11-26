@@ -63,7 +63,7 @@ def set_data(db_dir, command, args = None):
     """
     print command
     with lite.connect((db_dir)) as conn:
-        #try:
+        try:
             cursor = conn.cursor()
             if args:
                 cursor.execute(command,args)
@@ -72,6 +72,6 @@ def set_data(db_dir, command, args = None):
             conn.commit()
             print '[sql management] set successfully the data according to:\n--- %s ---'%(command )
             return True
-        #except:
+        except:
             return False
     return False
