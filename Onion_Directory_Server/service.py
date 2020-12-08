@@ -36,3 +36,5 @@ class service:
             "service_ip" : self.ip,
             "service_communication_type" : self.communication_type
         }
+    def get_name(self):
+        return self.service_name

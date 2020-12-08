@@ -12,11 +12,13 @@ def create_json(topic, args):
         "args" : args
     }
     """
-    
-    return json.dump({
-        "type" : ONION_ROUTER_MSG_TYPE
-        "main_topic" : topic
+    return json.dumps({
+        "type" : ONION_ROUTER_MSG_TYPE,
+        "main_topic" : topic,
         "args" : args
     })
 def recieve_json(json_data):
-    return json.load(json_data)
+    try:
+        return json.loads(json_data)
+    except:
+        return None

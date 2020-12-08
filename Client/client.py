@@ -61,7 +61,7 @@ has_done = False
 
 
 while 1:
-    onion_url = "POC SERVICE - ERAN IS SUCH A KING"#raw_input("please enter the url->")
+    onion_url = "HAPPY TEACHER DAY ERAN, THANKS"#raw_input("please enter the url->")
     print ('req:%s'%(onion_url,))
     server_sock.send(json_handler.create_json(onion_url))
 

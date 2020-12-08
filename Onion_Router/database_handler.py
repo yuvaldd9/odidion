@@ -61,7 +61,7 @@ def set_data(db_dir, command, args = None):
     """
     change, deleted, inserted the data according the command
     """
-    print command
+    print command, args
     with lite.connect((db_dir)) as conn:
         try:
             cursor = conn.cursor()

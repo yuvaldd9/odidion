@@ -1,21 +1,27 @@
 from json_codes import *
 from service import *
 from global_variables import *
+from onion_router_class import *
 import keep_alive_handler
 import json
 import onion_routing
 import onion_encryption_decryption
+import client_req_handler
+import time 
+import jwt
 
 def handle_client(json_msg):
     topics = {
-        CLIENT_REQ : client_req_handler.get_service()
+        CLIENT_REQ : client_req_handler.get_service
     }
-    return topics[json["main_topic"]](json_msg["args"]["service_name"])
+    print json_msg, type(json_msg)
+    return topics[json_msg["main_topic"]](json_msg["args"]["service_name"])
 
 def handle_service(json_msg):
     topics = {
-        SERVICE_REGISTER : register_service() 
+        SERVICE_REGISTER : register_service
     }
+    print json_msg, type(json_msg)
     return topics[json_msg["main_topic"]](json_msg["args"])
     """
         handle client, service communication
@@ -63,6 +69,8 @@ def handle_router(json_msg):
         ONION_ROUTER_REGISTER : register_router, 
         ONION_ROUTER_KEEP_ALIVE : keep_alive_handler.recieve_keep_alive
     }
+    #print json_msg, type(json_msg)
+
     return topics[json_msg["main_topic"]](json_msg["args"])
 
 def register_router(json_msg):
@@ -80,22 +88,28 @@ def register_router(json_msg):
     }
     """
 
-    print '[Adding Onion Router:%s:To The System]'%(json_msg["args"]["router_name"],)
+    print '[Adding Onion Router:%s:To The System]'%(json_msg["router_name"],)
 
     last_seen = time.time() 
-    public_key_dir = onion_encryption_decryption.save_pukey(router_name, public_key)
-    onion_router_details = dict(json_msg["args"])
-    onion_router_details["public_key"] = public_key_dir  
+    public_key_dir = onion_encryption_decryption.save_pukey(json_msg["router_name"], json_msg["public_key"])
+    onion_router_details = json_msg
+    onion_router_details["public_key_dir"] = public_key_dir  
     new_router = onion_router(onion_router_details)
-    CONNECTED_ROUTERS[json_msg["args"]["router_name"]] = (new_router)
+    CONNECTED_ROUTERS[json_msg["router_name"]] = (new_router)
     #LAST_SEEN[router_name] = last_seen
-    return (ONION_ROUTER_REGISTER, STATE_SUCCEED)
+    return ONION_ROUTER_REGISTER, STATE_SUCCEED, None
 
 def register_service(details_dict):
+
+    public_key_dir = onion_encryption_decryption.save_pukey(details_dict["service_name"], details_dict["public_key"])
+    service_details = details_dict
+    service_details["public_key_dir"] = public_key_dir
+
     ren_details = onion_routing.choose_ren_point()
-    new_service = service(details_dict, ren_details, SERVICES_DB_DIR)
-    SERVICES_UPDATES[ren_details["router_name"]] = new_service.get_details()
-    return (SERVICE_REGISTER, STATE_SUCCEED)
+
+    new_service = service(service_details, ren_details, SERVICES_DB_DIR)
+    SERVICES_UPDATES[ren_details["ren_name"]] = new_service.get_details()
+    return SERVICE_REGISTER, STATE_SUCCEED, None
 
 
 

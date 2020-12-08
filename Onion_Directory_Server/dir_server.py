@@ -19,7 +19,7 @@ from onion_router_class import *
 import os
 import random
 import json
-
+import json_odidion_support
 #create/ connect to the databases - START
 #onion_db -> the ip, name, load of any onion router in the net
 #services_db -> manage the services, url,ren ip....
@@ -207,144 +207,33 @@ def add_service(service_details):
 
 #handle communication - START
 def handle_communication(sock, addr):
-    global HANDLE_JSON
+    global HANDLE_JSON, BUFSIZ
+
     create_json = json_odidion_support.create_json
+    #try:
     while 1:
-        data = clientsock.recv(BUFSIZ)
-        print "data:", data
+        data = sock.recv(BUFSIZ)
         if not data:
             print "ending communication with",addr
             break
-        try:
-            recieved_msg = json.loads(data)
-            response = create_json(HANDLE_JSON[recieved_msg["type"]](recieved_msg))
-            sock.send(bytes(response,encoding="utf-8"))
-        except:
-            print "[handle communication] - Error occured!"
-            break
-def handle_client_service(clientsock, addr):
-    """
-    handle client, service communication
-    """
-    print 'handling comm -> ', addr
-    is_service = False
-    service_process_flag = 0
-    while 1:
-        data = clientsock.recv(BUFSIZ)
-        print "data:", data
-        if not data:
-            print "ending communication with",addr
-            break
-        elif data[0:4] == 'req:':
-            print 'req'
-            print data[4:]
-            msg = str(get_service(data[4:]))
-            print len(msg)
-            clientsock.send(msg)
-            print 'sentttt'
-        elif data == 'register service':
-            print 'register service'
-            is_service = True
-            clientsock.send("details pls")
-            service_process_flag += 1
-        elif data[0] == "d" and is_service and service_process_flag == 1:
-            print 'in add service'
-            service_details = (data.split(':')) #details:service name:real ip:clients port:communication type(0-UDP 1-TCP):public_key
-            msg = add_service(service_details[1:])
-            is_service = False
-            service_process_flag = 0
-            clientsock.send(msg)
-        else:
-            #until there will be more options to the protocol
-            break
-    clientsock.close()    
+        print '------------',addr,'--------------'
+        print data
+        print '------------',addr,'--------------'
+        recieved_msg = eval(json.dumps(json.loads(data)))
+        #print (recieved_msg)
+        json_code , state, args = HANDLE_JSON[recieved_msg["type"]](recieved_msg)
+        response = create_json(json_code , state, args)
+        #print response
+        
+        sock.send(response)
+    #except: 
+    print "[handle communication] - Error occured!"
+        
+   
 
-
-def handle_router(routersock, addr):
-    """
-    handle the connection of the routers to the network
-    and manage keep-alive protocol
-    """
-    global CONNECTED_ROUTERS
-    global SERVICES_UPDATES
-    waiting_to_service_ack = False
-    try:
-        while 1:
-            data = routersock.recv(BUFSIZ)
-            print '[router data] ->  \n%s'%(data,)
-            if not data:
-                print "ending communication with",addr
-                break
-            elif data[0:4] == 'req:':
-                #print "[trying to connect]\n"
-                req_details = data.split(':')
-                router_name = req_details[1]
-                clients_port = req_details[2]
-                public_key = "".join(req_details[3:])
-
-                if router_name:
-                    routersock.send("connected")
-                    PENDING_ROUTERS[routersock] = (1,router_name) #update the 'pending dict' about this sock and saves the router name -> waiting for k 
-                else:
-                    break
-            elif data == 'k' and PENDING_ROUTERS[routersock] == (1,router_name):
-                #print '------k sent -> added-------'
-                del PENDING_ROUTERS[routersock]
-                add_connected_router(router_name, routersock,addr, clients_port,public_key)
-            elif data[0:6] == '[LIVE]':
-                #print router_name, ' is alive'
-                load_level = int(data.split("-")[1])
-                refresh_router(router_name,load_level)
-                                
-
-                if router_name in SERVICES_UPDATES.keys():
-                    routersock.send("k-%s"%(SERVICES_UPDATES[router_name])) 
-                    waiting_to_service_ack = True
-                else:
-                    routersock.send("k")
-                
-            elif waiting_to_service_ack and data == "update recieved":
-                del SERVICES_UPDATES[router_name]
-                waiting_to_service_ack = False
-              
-            else:
-                print '[closing.......]'
-                break
-        print "wtf?!?!?!?!??"
-        routersock.close()
-    except:
-        print "[COMMUNICATION UPDATE]\n%s is down or some error occoured!"%(router_name,)
-        closed_router(router_name)
-        routers_sock.close()
-
-def manage_routers(routers_sock):
-    """
-    THREAD
-    waiting for requests from onion routers to join the network
-    """
-    while True:
-        print '[waiting for connection from routers]'
-        routersock, addr = routers_sock.accept()
-        print addr, '[router trying to connect]'
-        PENDING_ROUTERS[routersock] = 0 #put the sock in 'pending mode' - tcp connected
-        thread.start_new_thread(handle_router, (routersock, addr))
 
 #handle communication - END
 
-
-
-
-#GLOBAL VARS:
-ONION_ROUTERS_DB_DIR = r"C:\Users\yuval\Desktop\odidion\odidion\Onion_Directory_Server\onion_routers.db"
-SERVICES_DB_DIR =  r"C:\Users\yuval\Desktop\odidion\odidion\Onion_Directory_Server\services.db"
-
-
-CONNECTED_ROUTERS = {} #dict of router objects - router_name : (router obj, sock, last seen(keep alive))
-PENDING_ROUTERS = {} #dict of the socks of the pending routers - sock:0/1 - 0 - tcp connected | 1 - waiting for k
-LAST_SEEN = {} #dict of the routers last seen - last keep alive update 
-SERVICES_ROUTERS = {} # "service name" : "router name" 
-SERVICES = {} # service name : service object
-SERVICES_UPDATES = {} #router name : the new service.
 create_databases()
 
 HANDLE_JSON = {
@@ -357,29 +246,10 @@ HANDLE_JSON = {
 BUFSIZ = 4096
 HOST = '10.0.0.3'#'192.168.1.22' #'192.168.43.207' #'10.0.0.5'
 
-"""ROUTERS_PORT = 50012
-    CLIENTS_PORT = 50010
-
-    ROUTERS_ADDR = (HOST, ROUTERS_PORT)
-    CLIENTS_ADDR = (HOST, CLIENTS_PORT)
-
-    routers_sock = socket(AF_INET, SOCK_STREAM)
-    clients_sock = socket(AF_INET, SOCK_STREAM)
-
-    routers_sock.bind(ROUTERS_ADDR)
-    clients_sock.bind(CLIENTS_ADDR)
-
-    routers_sock.listen(2)
-    clients_sock.listen(2)
-    #communications - end
-
-    #managing the routers:
-    thread.start_new_thread(manage_routers, (routers_sock,))
-    """
-
 PORT = 50010
 ADDR = (HOST, PORT)
 main_sock = socket(AF_INET, SOCK_STREAM)
+main_sock.bind(ADDR)
 main_sock.listen(2)
 
 #for the clients
@@ -389,5 +259,5 @@ while True:
     """
     print '[waiting for connection from clients\ new registers]'
     clientsock, addr = main_sock.accept()
-    print addr, '[connected]'
+    print addr,clientsock, '[connected]'
     thread.start_new_thread(handle_communication, (clientsock, addr))
