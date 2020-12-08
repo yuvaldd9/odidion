@@ -27,7 +27,7 @@ def create_onion_packet(routers, service_public_key, communication_type, action,
     pkt_client_to_1 = IP(src = UDP_ADDR[0], dst = routers['1'][1])/UDP(dport = routers['1'][2])/Raw(load = pkt_1_to_2)"""
 
     pkt_1_to_ren = generate_packet(routers['2'], routers['3'], communication_type, action, service_public_key)
-    pkt_client_to_1 = IP(src = UDP_ADDR[0], dst = routers['2'][1])/UDP(dport = routers['2'][2])/Raw(load = pkt_1_to_ren)
+    pkt_client_to_1 = IP(src = UDP_ADDR[0], dst = routers['2']["router_ip"])/UDP(dport = routers['2']["router_port"])/Raw(load = pkt_1_to_ren)
     #sport = UDP_ADDR[1] , sport = src_router[2] ,
     return pkt_client_to_1
 
@@ -37,7 +37,7 @@ def generate_packet(src_router, dest_router, communication_type, data, service_p
 
     service_public_key != None only in the first(last) packet
     """
-    print "-----start of %s to %s"%(src_router[0], dest_router[0])
+    print "-----start of %s to %s----"%(src_router["router_name"], dest_router["router_name"])
     sym_key = onion_encryption_decryption.generate_sym_key()
     print "sym key type: ->   ", type(sym_key), "----",sym_key
     if service_public_key:
@@ -46,13 +46,13 @@ def generate_packet(src_router, dest_router, communication_type, data, service_p
         data = msg
         """ren_pkt = bytes(IP()/UDP()/Raw(load = msg))
         data = onion_encryption_decryption.encrypt_pkt(ren_pkt, communication_type, ren_sym_key, dest_router[3])"""
-    l3_ip = IP(src = src_router[1], dst = dest_router[1])
-    l4_UDP = UDP(dport = dest_router[2])
+    l3_ip = IP(src = src_router["router_ip"], dst = dest_router["router_ip"])
+    l4_UDP = UDP(dport = dest_router["router_port"])
     pkt = bytes(l3_ip/l4_UDP/Raw(load = data))
-    print src_router[0], '\n',src_router[3]
-    print "-----PACKET of %s to %s"%(src_router[0], dest_router[0])
+    print src_router["router_name"], '\n',src_router["router_public_key"]
+    print "-----PACKET of %s to %s"%(src_router["router_name"], dest_router["router_name"])
     hexdump(pkt)
-    return onion_encryption_decryption.encrypt_pkt(pkt, communication_type, sym_key, src_router[3])
+    return onion_encryption_decryption.encrypt_pkt(pkt, communication_type, sym_key, src_router["router_public_key"])
 
 
 

@@ -5,7 +5,8 @@ import sys , os
 import time
 import database_handler as db
 import onion_encryption_decryption
-
+import json_handler
+import json
 #Encryption Decryption Funcs - START
 #Encryption Decryption Funcs - END
 #DATABASE - START 
@@ -28,63 +29,82 @@ def connect_to_network(server_sock):
     handling the connection handshake between the dir server and the router
     """
     global ROUTER_NAME, PUBLIC_KEY, CLIENTS_PORT
-    connect_req = 'req:%s:%s:%s'%(ROUTER_NAME,CLIENTS_PORT,PUBLIC_KEY)
+    onion_router_details = {
+        "router_name" : ROUTER_NAME,
+        "ip" : DIR_SERVER_IP,
+        "public_key" : PUBLIC_KEY,
+        "port" : CLIENTS_PORT
+    }
+    connect_req = json_handler.create_json(json_handler.ONION_ROUTER_REGISTER, onion_router_details)
     print '[connecting]'
     server_sock.send(connect_req)
     while 1:
         data = server_sock.recv(BUFSIZ)
         if not data:
-            print "ending communication with the server"
-            break
-        elif data == 'connected':
-            server_sock.send('k')
+                print "ending communication with the server"
+                break
+        print data, type(data)
+        #try:
+            #json.dumps(json.loads(data))
+        data = json.loads(data)#eval(data)
+        print data["state"]
+        print json_handler.STATE_SUCCEED
+        if data["state"] == json_handler.STATE_SUCCEED:
             return True
-    return False
+        #except:
+            print 'failed'
+            return False
 
 def add_service(service_details):
     global SERVICES_DB_DIR 
     global SERVICES
-    print db.set_data(SERVICES_DB_DIR, '''INSERT INTO services(service_name, ip, port, communication_type) VALUES(?,?,?,?)''', args= service_details)
-    SERVICES.append(service_details)
-    return True
+    print db.set_data(SERVICES_DB_DIR, '''INSERT INTO services(service_name, ip, port, communication_type) VALUES(?,?,?,?)''',\
+            args= (service_details["service_name"], service_details["service_ip"], service_details["service_port"], service_details["service_communication_type"]))
+    SERVICES.append(service_details)#list only for eran's even derach
+    return 1
 
 def handle_keep_alive(server_sock):
     """
     handle the keep alive connection between the server
     """
     #print server_sock.stillconnected()
-    
+    global LOAD_LEVEL, ROUTER_NAME
+    keep_alive_details = {
+        "load" : LOAD_LEVEL,
+        "router_name" : ROUTER_NAME
+    }
     while 1:
-        try:
-            server_sock.send('[LIVE]-%s'%(LOAD_LEVEL,))
+        try:        
             print 'send [LIVE] to server'
-            while 1:
-                data = server_sock.recv(BUFSIZ)
-                print 'got %s'%(data,)
-                if not data:
-                    break
-                elif data[0] == "k":
-                    if len(data) > 1:
-                        updates = "".join(data.split('-')[1:])
-                        print updates
-                        updates = eval(updates)
+            msg = json_handler.create_json(json_handler.ONION_ROUTER_KEEP_ALIVE, keep_alive_details)
+            print msg
+            server_sock.send(msg)
+            d = server_sock.recv(BUFSIZ)
 
-                        if add_service(updates):
-                            server_sock.send("update recieved")
-                    else:
-                        print 'NO UPDATES'
+            data = json_handler.recieve_json(d)
+            
+            print 'got %s'%(data,)
+            if not data:
                 break
-            time.sleep(10)
-        except:
+            elif "new_service" in data["args"].keys():
+                keep_alive_details["service_added"] = (add_service(data["args"]["new_service"]))
+            else:
+                print 'NO UPDATES'
+                if "service_added" in keep_alive_details.keys():
+                    del keep_alive_details["service_added"]
+
+            time.sleep(5)
+        except Exception as e:
+            print e
             print 'failed'
             break
 
 def send_to_service(data):
     print "----sending-----"
     print data
-    print (SERVICES[0][1], int(SERVICES[0][3]))
+    #print (SERVICES[0][1], int(SERVICES[0][3]))
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    sock.sendto(data, (SERVICES[0][1], int(SERVICES[0][2])))
+    sock.sendto(data, (SERVICES[0]["service_ip"], int(SERVICES[0]["service_port"])))
 def handle_packet(onion_pkt):
     global PRIVATE_KEY
     global curr_communications
@@ -138,16 +158,11 @@ CURR_COMMUNICATION = [] #tcp connections (prev_ip, next_ip)
 
 #Encryption Decryption Global Vars - Start
 PUBLIC_KEY, PRIVATE_KEY  =  onion_encryption_decryption.generate_keys((os.getcwd()), ROUTER_NAME) 
-"""print type(PRIVATE_KEY)
-print type(PUBLIC_KEY)
-b = b'holaa'
-be = onion_encryption_decryption.RSA_Encryption(b, PUBLIC_KEY)
-print be
-print onion_encryption_decryption.RSA_Decryption(be, PRIVATE_KEY)"""
+
 #Encryption Decryption Global Vars - END
 #server - router - communication - END
-DIR_SERVER_IP = '192.168.1.22' #'192.168.43.207' #'10.0.0.5'
-DIR_SERVER_PORT = 50012
+DIR_SERVER_IP = '10.0.0.3'#'192.168.1.22' #'192.168.43.207' #'10.0.0.5'
+DIR_SERVER_PORT = 50010
 BUFSIZ = 1024
 DIR_SERVER_ADDR = (DIR_SERVER_IP, DIR_SERVER_PORT)
 server_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)

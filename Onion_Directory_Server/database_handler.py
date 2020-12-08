@@ -51,7 +51,7 @@ def get_data(db_dir, command, args = None):
             else:
                 cursor.execute(command)
                 data = cursor.fetchall()
-                print '[sql management] got all of the data requested according to:\n--- %s ---\n the data: %s'%(command, data)
+                #print '[sql management] got all of the data requested according to:\n--- %s ---\n the data: %s'%(command, data)
                 return data
         except:
             return None
@@ -60,7 +60,7 @@ def set_data(db_dir, command, args = None):
     """
     change, deleted, inserted the data according the command
     """
-    print command
+    #print command
     with lite.connect((db_dir)) as conn:
         #try:
             cursor = conn.cursor()
@@ -69,7 +69,7 @@ def set_data(db_dir, command, args = None):
             else:
                 cursor.execute(command)
             conn.commit()
-            print '[sql management] set successfully the data according to:\n--- %s ---'%(command )
+            #print '[sql management] set successfully the data according to:\n--- %s ---'%(command )
             return True
         #except:
             return False
