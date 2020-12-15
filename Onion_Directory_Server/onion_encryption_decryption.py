@@ -86,40 +86,22 @@ def encrypt_pkt(pkt, communication_type, sym_key, public_key):
     return (public_key)sym_key+(sym_key)pkt
     """
     global KEYS_LEN
-    print '-----encrypt pkt-------------'
-    print (sym_key + str(communication_type))
-    print '------------'
-    print bytes(sym_key + str(communication_type))
+
     encrypted_pkt = sym_encryption((pkt), sym_key)
     encrypted_key_comm_header = RSA_Encryption(bytes(sym_key + str(communication_type)), public_key)
-    print encrypted_pkt
-    print '-----------------'
-    print encrypted_key_comm_header
-    print '--------END------------'
 
-    print len(encrypted_key_comm_header)
-    print len(encrypted_pkt)
     return   encrypted_key_comm_header + encrypted_pkt
 
-def save_pukey(name, public_key):
-    """
-    SAVES THe public key to .pem file
-    """
-    
-    pukey_dir = "%s\keys\%s.pem"%(os.getcwd(), name)
+def decrypt_data_service(data, PRIVATE_KEY):
+    print type(data)
+    print "UDP LOAD:\n",data
     try:
-        public_key_file = open((pukey_dir),'wb')
-        public_key_file.write(public_key)
-        public_key_file.close()
-        return pukey_dir
+        key_comm_header = data[:KEYS_LEN]
+        dec_sym_key = onion_encryption_decryption.RSA_Decryption(key_comm_header,PRIVATE_KEY)
+        encrypted_data = (data[onion_encryption_decryption.KEYS_LEN:])
+        return onion_encryption_decryption.sym_decryption(encrypted_data,dec_sym_key)
     except:
-        return ''
-    
-def get_public_key(key_path):
-    print 'taking the f key'
-    try:
-        with open(key_path, 'r') as f:
-            key = f.read()
-        return key
-    except:
-        return '' 
+        return "FAILED IN DECRYPTION"
+        
+        
+       

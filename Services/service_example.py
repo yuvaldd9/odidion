@@ -55,7 +55,7 @@ DIR_SERVER_SOCKET = socket(AF_INET, SOCK_STREAM)
 DIR_SERVER_SOCKET.connect(DIR_SERVER_ADDR)
 
 
-SERVICE_NAME = "HAPPY TEACHER DAY ERAN, THANKS"
+SERVICE_NAME = "HAPPY TEACHER DAY ERAN, THANKS123"
 sock = socket(AF_INET,SOCK_DGRAM)
 UDP_ADDR = (UDP_IP, UDP_PORT)
 sock.bind(UDP_ADDR)
@@ -65,6 +65,6 @@ if register_service(DIR_SERVER_SOCKET, UDP_ADDR, 0):
         print 'waiting...'
         data, addr = sock.recvfrom(1024) # buffer size is 1024 bytes
 
-        print("received message: %s" % onion_encryption_decryption.RSA_Decryption(data, PRIVATE_KEY))
+        print("received message: %s" % onion_encryption_decryption.decrypt_data_service(data, PRIVATE_KEY))
 else:
     print "Error Occured"

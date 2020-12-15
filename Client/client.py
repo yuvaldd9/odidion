@@ -27,7 +27,7 @@ def manage_communication(UDP_ADDR ,COMMUNICATION_DETAILS):
     #pkt = IP(dst = "www.google.com")/UDP(dport = 50001)/"aaa"
     new_pkt = IP(pkt.build())
     #new_pkt.hexdump()
-    hexdump(new_pkt)
+    ##hexdump(new_pkt)
     print len(new_pkt[UDP].payload)
     #send(pkt)
     send(new_pkt)
@@ -61,7 +61,7 @@ has_done = False
 
 
 while 1:
-    onion_url = "HAPPY TEACHER DAY ERAN, THANKS"#raw_input("please enter the url->")
+    onion_url = "HAPPY TEACHER DAY ERAN, THANKS123"#raw_input("please enter the url->")
     print ('req:%s'%(onion_url,))
     server_sock.send(json_handler.create_json(onion_url))
 
