@@ -130,10 +130,7 @@ def handle_packet(onion_pkt):
             hexdump(next_pkt)
             send(next_pkt)
         except:
-            print 'last router?'
             onion_pkt.show()
-            
-            
             encrypted_data = bytes(udp_data[onion_encryption_decryption.KEYS_LEN:])
             send_to_service(udp_data)
             

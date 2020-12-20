@@ -8,7 +8,7 @@ import sys , os
 if sys.stdout != sys.__stdout__:
     sys.stdout = sys.__stdout__
 
-KEYS_LEN = 384
+KEYS_LEN = 192#256#384
 
 def generate_keys(MAIN_DIR, name):
     """
@@ -25,7 +25,7 @@ def generate_keys(MAIN_DIR, name):
         PRIVATE_KEY = RSA.importKey(open(repr(PRIVATE_KEY_DIR) , 'rb')).export_key()
         PUBLIC_KEY = RSA.importKey(open(repr(PUBLIC_KEY_DIR), 'rb')).export_key()
     else:
-        keyPair = RSA.generate(3072)
+        keyPair = RSA.generate(256*6)
 
         PUBLIC_KEY = keyPair.publickey().export_key()
         PRIVATE_KEY = keyPair.exportKey()
@@ -76,32 +76,25 @@ def generate_sym_key():
     return Fernet.generate_key()
 def str_to_RSAKey(key_str):
     return RSA.importKey(key_str)
-
-def encrypt_pkt(pkt, communication_type, sym_key, public_key):
+def save_pukey(name, public_key):
     """
-    Encrypt the packet
-
-    sym_key = string(FERNET KEY - generate_sym_key())
-
-    return (public_key)sym_key+(sym_key)pkt
+    SAVES THe public key to .pem file
     """
-    global KEYS_LEN
-
-    encrypted_pkt = sym_encryption((pkt), sym_key)
-    encrypted_key_comm_header = RSA_Encryption(bytes(sym_key + str(communication_type)), public_key)
-
-    return   encrypted_key_comm_header + encrypted_pkt
-
-def decrypt_data_service(data, PRIVATE_KEY):
-    print type(data)
-    print "UDP LOAD:\n",data
+    
+    pukey_dir = "%s\keys\%s.pem"%(os.getcwd(), name)
     try:
-        key_comm_header = data[:KEYS_LEN]
-        dec_sym_key = onion_encryption_decryption.RSA_Decryption(key_comm_header,PRIVATE_KEY)
-        encrypted_data = (data[onion_encryption_decryption.KEYS_LEN:])
-        return onion_encryption_decryption.sym_decryption(encrypted_data,dec_sym_key)
+        public_key_file = open((pukey_dir),'wb')
+        public_key_file.write(public_key)
+        public_key_file.close()
+        return pukey_dir
     except:
-        return "FAILED IN DECRYPTION"
-        
-        
-       
+        return ''
+
+def get_public_key(key_path):
+    print 'taking the f key'
+    try:
+        with open(key_path, 'r') as f:
+            key = f.read()
+        return key
+    except:
+        return '' 
