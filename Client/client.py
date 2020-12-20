@@ -3,7 +3,8 @@ from scapy.all import *
 import onion_packet_handler
 import sys , os
 import json_handler
-
+import random
+import time
 if sys.stdout != sys.__stdout__:
     sys.stdout = sys.__stdout__
 
@@ -21,19 +22,32 @@ def manage_communication(UDP_ADDR ,COMMUNICATION_DETAILS):
 
 
     #action = raw_input('[SYSTEM - ROUTING] what is the action with this site? --->')
-    action = "Hello World"#temp for POC
-    
-    pkt = onion_packet_handler.create_onion_packet(routers, service_public_key, communication_type, action, UDP_ADDR)
-    #pkt = IP(dst = "www.google.com")/UDP(dport = 50001)/"aaa"
-    new_pkt = IP(pkt.build())
-    #new_pkt.hexdump()
-    hexdump(new_pkt)
-    print len(new_pkt[UDP].payload)
-    #send(pkt)
-    send(new_pkt)
+    action = divide_data("Eran Binet The King"*50)#temp for Testing
+    print len(action)
+    for part in action:
 
+        pkt = onion_packet_handler.create_onion_packet(routers, service_public_key, communication_type, part, UDP_ADDR)
+        #pkt = IP(dst = "www.google.com")/UDP(dport = 50001)/"aaa"
+        new_pkt = IP(pkt.build())
+        #new_pkt.hexdump()
+        ##hexdump(new_pkt)
+        print len(new_pkt[UDP].payload)
+        #send(pkt)
+        send(new_pkt)
+        time.sleep(0.3)
     return True
 
+def divide_data(data):
+    jwt = random.randint(0,100)
+    len_of_data = 50
+    repeat_times = len(data)/len_of_data
+    data_parts = []
+    for i in xrange(repeat_times):
+        data_parts.append(json_handler.create_service_json(data[i*len_of_data:(i+1)*len_of_data], i, jwt))
+    if data[(repeat_times+1)*len_of_data:]:
+        data_parts.append(json_handler.create_service_json(data[(repeat_times+1)*len_of_data:], repeat_times, jwt))
+    data_parts.append(json_handler.create_service_json(repeat_times, 'End', jwt))
+    return data_parts
 
 def packet_trace(routers):
     """

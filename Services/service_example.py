@@ -3,7 +3,7 @@ import json
 import onion_encryption_decryption 
 import json_handler
 from socket import *
-
+from collections import defaultdict
 
 
 def register_service(sock, addr, comm_type):
@@ -40,8 +40,26 @@ def register_service(sock, addr, comm_type):
             return state_handler[data["state"]]
         state_handler[data["state"]]
     
-
-
+def connect_data(dict_data_parts, parts):
+    data = ""
+    for i in xrange(parts):
+        try:
+            data += dict_data_parts[i]["data"]
+        except:
+            data += "[NULL]"
+    return data
+def recieving_data():
+    messages = defaultdict(dict)
+    while True:
+        data, addr = sock.recvfrom(60000) # buffer size is 1024 bytes
+        dec_json = onion_encryption_decryption.decrypt_data_service(data, PRIVATE_KEY)
+        msg = json.loads(dec_json)
+        if msg["serial_num"] != "End":
+            messages[msg["jwt"]][msg["serial_num"]] = (msg)
+        else:
+            data = connect_data(messages[msg["jwt"]], int(msg["data"]))
+            del messages[msg["jwt"]]
+            yield data
 UDP_IP = '10.0.0.3'#'192.168.1.22' #'192.168.43.207' #'10.0.0.5'
 UDP_PORT = 50005
 BUFSIZ = 1024
@@ -61,10 +79,9 @@ UDP_ADDR = (UDP_IP, UDP_PORT)
 sock.bind(UDP_ADDR)
 PUBLIC_KEY, PRIVATE_KEY  =  onion_encryption_decryption.generate_keys((os.getcwd()), SERVICE_NAME) 
 if register_service(DIR_SERVER_SOCKET, UDP_ADDR, 0):
-    while True:
-        print 'waiting...'
-        data, addr = sock.recvfrom(1024) # buffer size is 1024 bytes
-
-        print("received message: %s" % onion_encryption_decryption.RSA_Decryption(data, PRIVATE_KEY))
+    for data in recieving_data():
+        print("received message: %s" % data)
+        
+        
 else:
     print "Error Occured"

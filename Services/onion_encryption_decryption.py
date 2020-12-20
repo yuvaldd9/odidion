@@ -8,7 +8,7 @@ import sys , os
 if sys.stdout != sys.__stdout__:
     sys.stdout = sys.__stdout__
 
-KEYS_LEN = 384
+KEYS_LEN = 192#256#384
 
 def generate_keys(MAIN_DIR, name):
     """
@@ -25,7 +25,7 @@ def generate_keys(MAIN_DIR, name):
         PRIVATE_KEY = RSA.importKey(open(repr(PRIVATE_KEY_DIR) , 'rb')).export_key()
         PUBLIC_KEY = RSA.importKey(open(repr(PUBLIC_KEY_DIR), 'rb')).export_key()
     else:
-        keyPair = RSA.generate(3072)
+        keyPair = RSA.generate(256*6)
 
         PUBLIC_KEY = keyPair.publickey().export_key()
         PRIVATE_KEY = keyPair.exportKey()
@@ -86,17 +86,26 @@ def encrypt_pkt(pkt, communication_type, sym_key, public_key):
     return (public_key)sym_key+(sym_key)pkt
     """
     global KEYS_LEN
-    print '-----encrypt pkt-------------'
-    print (sym_key + str(communication_type))
-    print '------------'
-    print bytes(sym_key + str(communication_type))
+
     encrypted_pkt = sym_encryption((pkt), sym_key)
     encrypted_key_comm_header = RSA_Encryption(bytes(sym_key + str(communication_type)), public_key)
-    print encrypted_pkt
-    print '-----------------'
-    print encrypted_key_comm_header
-    print '--------END------------'
 
-    print len(encrypted_key_comm_header)
-    print len(encrypted_pkt)
     return   encrypted_key_comm_header + encrypted_pkt
+
+def decrypt_data_service(data, PRIVATE_KEY):
+    #print type(data)
+    #print "UDP LOAD:\n",data
+    
+    global KEYS_LEN
+    try:
+        key_comm_header = data[:KEYS_LEN]
+        dec_sym_key = RSA_Decryption(key_comm_header,PRIVATE_KEY)
+        encrypted_data = (data[KEYS_LEN:])
+
+        #print '---length of encrypted sym key      ', len(key_comm_header)
+        return sym_decryption(encrypted_data,dec_sym_key)
+    except:
+        return "FAILED IN DECRYPTION"
+        
+        
+       
