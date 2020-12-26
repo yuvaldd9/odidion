@@ -60,7 +60,7 @@ def add_service(service_details):
     global SERVICES
     print db.set_data(SERVICES_DB_DIR, '''INSERT INTO services(service_name, ip, port, communication_type) VALUES(?,?,?,?)''',\
             args= (service_details["service_name"], service_details["service_ip"], service_details["service_port"], service_details["service_communication_type"]))
-    SERVICES.append(service_details)#list only for eran's even derach
+    SERVICES[service_details["service_name"]] = (service_details)#list only for eran's even derach
     return 1
 
 def handle_keep_alive(server_sock):
@@ -103,8 +103,11 @@ def send_to_service(data):
     print "----sending-----"
     print data
     #print (SERVICES[0][1], int(SERVICES[0][3]))
+    seperator_index = data.index(':')
+    service_name = data[:seperator_index]
+    service_data = data[seperator_index+1:]
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    sock.sendto(data, (SERVICES[0]["service_ip"], int(SERVICES[0]["service_port"])))
+    sock.sendto(service_data, (SERVICES[service_name]["service_ip"], int(SERVICES[service_name]["service_port"])))
 def handle_packet(onion_pkt):
     global PRIVATE_KEY
     global curr_communications
@@ -139,7 +142,7 @@ def handle_packet(onion_pkt):
 #onion routing vars - Start
 LOAD_LEVEL = 0
 routing_processes = [] #(src_ip, dst_ip, comm_type)
-SERVICES = [] # {service_name : {ip, port, communication_type}} dict of  dictionaries
+SERVICES = {} # {service_name : {ip, port, communication_type}} dict of  dictionaries
 
 #onion routing vars - Start
 

@@ -43,10 +43,10 @@ def register_service(sock, addr, comm_type):
 def connect_data(dict_data_parts, parts):
     data = ""
     for i in xrange(parts):
-        try:
-            data += dict_data_parts[i]["data"]
-        except:
-            data += "[NULL]"
+        #try:
+        data += dict_data_parts[i]["data"]
+        #except:
+        #   data += "[NULL]"
     return data
 def recieving_data():
     messages = defaultdict(dict)
@@ -73,7 +73,7 @@ DIR_SERVER_SOCKET = socket(AF_INET, SOCK_STREAM)
 DIR_SERVER_SOCKET.connect(DIR_SERVER_ADDR)
 
 
-SERVICE_NAME = "HAPPY TEACHER DAY ERAN, THANKS"
+SERVICE_NAME = "S1"
 sock = socket(AF_INET,SOCK_DGRAM)
 UDP_ADDR = (UDP_IP, UDP_PORT)
 sock.bind(UDP_ADDR)
