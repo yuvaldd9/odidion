@@ -9,9 +9,9 @@ def get_service(service_name):
     """
     
 
-    service_details = db.get_data(global_variables.SERVICES_DB_DIR, '''SELECT ren_ip, ren_name, communication_type, public_key_dir from services WHERE service_name = \'%s\''''%service_name)[0]
+    service_details = db.get_data(global_variables.SERVICES_DB_DIR, '''SELECT ren_ip, ren_name, communication_type, public_key_dir, serial_number from services WHERE service_name = \'%s\''''%service_name)[0]
 
-    service_data = {}
+    service_data = {'serial_number':service_details[4]}
     service_public_key = onion_encryption_decryption.get_public_key(service_details[3])
     if not service_public_key:
           return (CLIENT_REQ, STATE_SEND_AGAIN)

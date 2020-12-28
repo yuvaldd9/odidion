@@ -37,16 +37,17 @@ def register_service(sock, addr, comm_type):
             break
         elif data["state"] != json_handler.STATE_SEND_AGAIN:
             sock.close()
+            
             return state_handler[data["state"]]
         state_handler[data["state"]]
     
 def connect_data(dict_data_parts, parts):
     data = ""
     for i in xrange(parts):
-        try:
-            data += dict_data_parts[i]["data"]
-        except:
-            data += "[NULL]"
+        #try:
+        data += dict_data_parts[i]["data"]
+        #except:
+        #   data += "[NULL]"
     return data
 def recieving_data():
     messages = defaultdict(dict)
@@ -61,7 +62,7 @@ def recieving_data():
             del messages[msg["jwt"]]
             yield data
 UDP_IP = '10.0.0.3'#'192.168.1.22' #'192.168.43.207' #'10.0.0.5'
-UDP_PORT = 50005
+UDP_PORT = 50008
 BUFSIZ = 1024
 
 
@@ -73,12 +74,13 @@ DIR_SERVER_SOCKET = socket(AF_INET, SOCK_STREAM)
 DIR_SERVER_SOCKET.connect(DIR_SERVER_ADDR)
 
 
-SERVICE_NAME = "HAPPY TEACHER DAY ERAN, THANKS"
+SERVICE_NAME = "S4"
 sock = socket(AF_INET,SOCK_DGRAM)
 UDP_ADDR = (UDP_IP, UDP_PORT)
 sock.bind(UDP_ADDR)
 PUBLIC_KEY, PRIVATE_KEY  =  onion_encryption_decryption.generate_keys((os.getcwd()), SERVICE_NAME) 
 if register_service(DIR_SERVER_SOCKET, UDP_ADDR, 0):
+    print 'connected', SERVICE_NAME
     for data in recieving_data():
         print("received message: %s" % data)
         

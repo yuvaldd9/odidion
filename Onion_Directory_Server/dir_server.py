@@ -33,10 +33,10 @@ def create_databases():
         db.connect_dataBase(ONION_ROUTERS_DB_DIR, '''CREATE TABLE onion_routers(\
                                                                 id INTEGER PRIMARY KEY, router_name TEXT,\
                                                                 ip TEXT, port INTEGER ,load INTEGER, is_available INTEGER, last_seen TEXT,
-                                                                public_key_dir TEXT, service_str TEXT)''')
+                                                                public_key_dir TEXT, service_str INTEGER)''')
     if  not os.path.exists(SERVICES_DB_DIR):
         db.connect_dataBase(SERVICES_DB_DIR, '''CREATE TABLE services(id INTEGER PRIMARY KEY, service_name TEXT,
-                                                service_port TEXT ,ip TEXT, ren_ip TEXT, ren_name TEXT, communication_type INTEGER, public_key_dir TEXT)''')
+                                                service_port TEXT ,ip TEXT, ren_ip TEXT, ren_name TEXT, communication_type INTEGER, public_key_dir TEXT, serial_number TEXT)''')
     return True
 #create/ connect to the databases - end
 
@@ -210,24 +210,24 @@ def handle_communication(sock, addr):
     global HANDLE_JSON, BUFSIZ
 
     create_json = json_odidion_support.create_json
-    #try:
-    while 1:
-        data = sock.recv(BUFSIZ)
-        if not data:
-            print "ending communication with",addr
-            break
-        print '------------',addr,'--------------'
-        print data
-        print '------------',addr,'--------------'
-        recieved_msg = eval(json.dumps(json.loads(data)))
-        #print (recieved_msg)
-        json_code , state, args = HANDLE_JSON[recieved_msg["type"]](recieved_msg)
-        response = create_json(json_code , state, args)
-        #print response
-        
-        sock.send(response)
-    #except: 
-    print "[handle communication] - Error occured!"
+    try:
+        while 1:
+            data = sock.recv(BUFSIZ)
+            if not data:
+                print "ending communication with",addr
+                break
+            print '------------',addr,'--------------'
+            print data
+            print '------------',addr,'--------------'
+            recieved_msg = eval(json.dumps(json.loads(data)))
+            #print (recieved_msg)
+            json_code , state, args = HANDLE_JSON[recieved_msg["type"]](recieved_msg)
+            response = create_json(json_code , state, args)
+            #print response
+            
+            sock.send(response)
+    except: 
+        print "[handle communication] - Error occured!"
         
    
 

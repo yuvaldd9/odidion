@@ -6,7 +6,7 @@ import sys , os
 if sys.stdout != sys.__stdout__:
     sys.stdout = sys.__stdout__
 
-def create_onion_packet(routers, service_public_key, communication_type, action, UDP_ADDR):
+def create_onion_packet(routers, service_public_key, communication_type, action, UDP_ADDR, service_name):
     """
     build the packet according to the current
     routers, keys, ip and the action(GET/POST/SET)
@@ -22,7 +22,7 @@ def create_onion_packet(routers, service_public_key, communication_type, action,
     }
     """
     print routers
-    pkt_2_to_ren = generate_packet(routers['2'], routers['3'], communication_type, action, service_public_key)
+    pkt_2_to_ren = generate_packet(routers['2'], routers['3'], communication_type, action, service_public_key, service_name)
     pkt_1_to_2 = generate_packet(routers['1'], routers['2'], communication_type, pkt_2_to_ren)
     pkt_client_to_1 = IP(src = UDP_ADDR[0], dst = routers['1']["router_ip"])/UDP(dport = routers['1']["router_port"])/Raw(load = pkt_1_to_2)
     
@@ -31,7 +31,7 @@ def create_onion_packet(routers, service_public_key, communication_type, action,
     #sport = UDP_ADDR[1] , sport = src_router[2]
     return pkt_client_to_1
 
-def generate_packet(src_router, dest_router, communication_type, data, service_public_key = None):
+def generate_packet(src_router, dest_router, communication_type, data, service_public_key = None, service_name = None):
     """
     returns the packet according to the routers
 
@@ -43,7 +43,7 @@ def generate_packet(src_router, dest_router, communication_type, data, service_p
         enc_sym_key = onion_encryption_decryption.RSA_Encryption(sym_key, service_public_key)
         enc_data_service = onion_encryption_decryption.sym_encryption(data, sym_key)
         msg = enc_sym_key + enc_data_service
-        data = msg
+        data = service_name + ":" +msg
     
     l3_ip = IP(src = src_router["router_ip"], dst = dest_router["router_ip"])
     l4_UDP = UDP(dport = dest_router["router_port"])

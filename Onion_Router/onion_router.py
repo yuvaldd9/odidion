@@ -58,17 +58,19 @@ def connect_to_network(server_sock):
 def add_service(service_details):
     global SERVICES_DB_DIR 
     global SERVICES
+    global SERIAL_NUM_SERVICES
+
     print db.set_data(SERVICES_DB_DIR, '''INSERT INTO services(service_name, ip, port, communication_type) VALUES(?,?,?,?)''',\
             args= (service_details["service_name"], service_details["service_ip"], service_details["service_port"], service_details["service_communication_type"]))
-    SERVICES.append(service_details)#list only for eran's even derach
-    return 1
+    SERVICES[SERIAL_NUM_SERVICES] = (service_details)#list only for eran's even derach
+    return SERIAL_NUM_SERVICES
 
 def handle_keep_alive(server_sock):
     """
     handle the keep alive connection between the server
     """
     #print server_sock.stillconnected()
-    global LOAD_LEVEL, ROUTER_NAME
+    global LOAD_LEVEL, ROUTER_NAME, SERIAL_NUM_SERVICES
     keep_alive_details = {
         "load" : LOAD_LEVEL,
         "router_name" : ROUTER_NAME
@@ -88,6 +90,7 @@ def handle_keep_alive(server_sock):
                 break
             elif "new_service" in data["args"].keys():
                 keep_alive_details["service_added"] = (add_service(data["args"]["new_service"]))
+                SERIAL_NUM_SERVICES += 1
             else:
                 print 'NO UPDATES'
                 if "service_added" in keep_alive_details.keys():
@@ -103,8 +106,11 @@ def send_to_service(data):
     print "----sending-----"
     print data
     #print (SERVICES[0][1], int(SERVICES[0][3]))
+    seperator_index = data.index(':')
+    service_name = int(data[:seperator_index])
+    service_data = data[seperator_index+1:]
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    sock.sendto(data, (SERVICES[0]["service_ip"], int(SERVICES[0]["service_port"])))
+    sock.sendto(service_data, (SERVICES[service_name]["service_ip"], int(SERVICES[service_name]["service_port"])))
 def handle_packet(onion_pkt):
     global PRIVATE_KEY
     global curr_communications
@@ -139,12 +145,12 @@ def handle_packet(onion_pkt):
 #onion routing vars - Start
 LOAD_LEVEL = 0
 routing_processes = [] #(src_ip, dst_ip, comm_type)
-SERVICES = [] # {service_name : {ip, port, communication_type}} dict of  dictionaries
+SERVICES = {} # {service_name : {ip, port, communication_type}} dict of  dictionaries
 
 #onion routing vars - Start
 
 
-
+SERIAL_NUM_SERVICES = 1
 ROUTER_NAME = sys.argv[1] #cmd input
 CLIENTS_PORT = int(sys.argv[2]) #cmd input
 

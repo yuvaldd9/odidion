@@ -41,8 +41,9 @@ def recieve_keep_alive(json):
     #return response_keep_alive(json["router_name"])
     if refresh_router(json["router_name"], int(json["load"])):
         if "service_added" in json.keys():
-            print '----------------------------deletinggggg-------------------------------'
-            #CONNECTED_ROUTERS[json["router_name"]].add_service(SERVICES_UPDATES[json["router_name"]].get_details())
+            print '-a-a-a-a-a-a-a'
+            SERVICES_UPDATES[json["router_name"]].add_serial_number(json["service_added"])
+            #CONNECTED_ROUTERS[json["router_name"]].add_service(SERVICES_UPDATES[json["router_name"]])
             del SERVICES_UPDATES[json["router_name"]]
         return response_keep_alive(json["router_name"])
     return (ONION_ROUTER_KEEP_ALIVE, STATE_FAILED)
@@ -50,4 +51,4 @@ def recieve_keep_alive(json):
     
 def response_keep_alive(router_name):
     print "IN RESPONSE KEEP ALIVE", router_name
-    return (ONION_ROUTER_KEEP_ALIVE, STATE_KEEP_ALIVE, {"Your Name is": router_name} if not router_name in SERVICES_UPDATES.keys() else ({'new_service':SERVICES_UPDATES[router_name]}))
+    return (ONION_ROUTER_KEEP_ALIVE, STATE_KEEP_ALIVE, {"Your Name is": router_name} if not router_name in SERVICES_UPDATES.keys() else ({'new_service':SERVICES_UPDATES[router_name].get_details()}))

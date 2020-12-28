@@ -108,7 +108,7 @@ def register_service(details_dict):
     ren_details = onion_routing.choose_ren_point()
 
     new_service = service(service_details, ren_details, SERVICES_DB_DIR)
-    SERVICES_UPDATES[ren_details["ren_name"]] = new_service.get_details()
+    SERVICES_UPDATES[ren_details["ren_name"]] = new_service
     return SERVICE_REGISTER, STATE_SUCCEED, None
 
 
