@@ -12,21 +12,22 @@ if sys.stdout != sys.__stdout__:
 
 #Encryption Decryption - END
 #handle onion-routing - START
-def manage_communication(UDP_ADDR ,COMMUNICATION_DETAILS, service_name):
+def manage_communication(UDP_ADDR ,COMMUNICATION_DETAILS):
     """
     manage the part of the client in the onion routing process
     """
+    print  COMMUNICATION_DETAILS["serial_number"]
     service_public_key = COMMUNICATION_DETAILS["service_public_key"]
     communication_type = COMMUNICATION_DETAILS["communication_type"]
     routers = COMMUNICATION_DETAILS["routers"]
 
 
     #action = raw_input('[SYSTEM - ROUTING] what is the action with this site? --->')
-    action = divide_data("Eran Binet The King"*50)#temp for Testing
+    action = divide_data("Eran Binet The King"*10)#temp for Testing
     print len(action)
     for part in action:
 
-        pkt = onion_packet_handler.create_onion_packet(routers, service_public_key, communication_type, part, UDP_ADDR, service_name)
+        pkt = onion_packet_handler.create_onion_packet(routers, service_public_key, communication_type, part, UDP_ADDR, str(COMMUNICATION_DETAILS["serial_number"]))
         #pkt = IP(dst = "www.google.com")/UDP(dport = 50001)/"aaa"
         new_pkt = IP(pkt.build())
         #new_pkt.hexdump()
@@ -75,7 +76,7 @@ has_done = False
 
 
 while 1:
-    onion_url = "S1"#raw_input("please enter the url->")
+    onion_url = "S3"#raw_input("please enter the url->")
     print ('req:%s'%(onion_url,))
     server_sock.send(json_handler.create_json(onion_url))
 
@@ -89,7 +90,7 @@ while 1:
             server_sock.send(json_handler.create_json(onion_url))
             pass
 
-        if manage_communication(UDP_ADDR, data["args"], onion_url):
+        if manage_communication(UDP_ADDR, data["args"]):
             print 'done'
         else:
             print 'faoled'
