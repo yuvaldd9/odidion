@@ -21,9 +21,8 @@ def create_json(service_name):
 def recieve_json(json_data):
     return json.loads(json_data)
 
-def create_service_json(data, serial_num, jwt):
+def create_service_json(data, serial_num):
     return json.dumps({
         "serial_num" : serial_num,
         "data" : data,
-        "jwt" : jwt
     })

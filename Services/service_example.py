@@ -1,6 +1,7 @@
 import os
 import json
 import onion_encryption_decryption 
+import send_back_onion_packet
 import json_handler
 from socket import *
 from collections import defaultdict
@@ -44,25 +45,43 @@ def register_service(sock, addr, comm_type):
 def connect_data(dict_data_parts, parts):
     data = ""
     for i in xrange(parts):
-        #try:
-        data += dict_data_parts[i]["data"]
-        #except:
-        #   data += "[NULL]"
+        try:
+            print dict_data_parts[i]["data"]
+            data += dict_data_parts[i]["data"]
+        except:
+           data += "[NULL - %s]"%(i,)
     return data
 def recieving_data():
+    global BACK_ID_DICT
+    global CLIENTS_KEYS 
+
     messages = defaultdict(dict)
     while True:
         data, addr = sock.recvfrom(60000) # buffer size is 1024 bytes
         dec_json = onion_encryption_decryption.decrypt_data_service(data, PRIVATE_KEY)
-        msg = json.loads(dec_json)
+        seperator = dec_json.index(':')
+        id_key = dec_json[:seperator
+        ]
+        BACK_ID_DICT [id_key] = {
+            'ip' : addr[0],
+            'port' : addr[1]
+        }
+        
+        msg = json.loads(dec_json[seperator+1:])
+        print msg
+
         if msg["serial_num"] != "End":
-            messages[msg["jwt"]][msg["serial_num"]] = (msg)
+            messages[id_key][msg["serial_num"]] = (msg)
         else:
-            data = connect_data(messages[msg["jwt"]], int(msg["data"]))
-            del messages[msg["jwt"]]
-            yield data
+            client_details = connect_data(messages[id_key], int(msg["data"])).split('%$%$', 1)
+            CLIENTS_KEYS[id_key] = client_details[1]
+            data = client_details[0]
+            del messages[id_key]
+            yield id_key, data
+
+            
 UDP_IP = '10.0.0.3'#'192.168.1.22' #'192.168.43.207' #'10.0.0.5'
-UDP_PORT = 50008
+UDP_PORT = 50018
 BUFSIZ = 1024
 
 
@@ -74,15 +93,21 @@ DIR_SERVER_SOCKET = socket(AF_INET, SOCK_STREAM)
 DIR_SERVER_SOCKET.connect(DIR_SERVER_ADDR)
 
 
-SERVICE_NAME = "S4"
+SERVICE_NAME = "S112"
 sock = socket(AF_INET,SOCK_DGRAM)
 UDP_ADDR = (UDP_IP, UDP_PORT)
 sock.bind(UDP_ADDR)
 PUBLIC_KEY, PRIVATE_KEY  =  onion_encryption_decryption.generate_keys((os.getcwd()), SERVICE_NAME) 
+
+BACK_ID_DICT = {} #id_key : 
+CLIENTS_KEYS = {} # id_key : public key
 if register_service(DIR_SERVER_SOCKET, UDP_ADDR, 0):
     print 'connected', SERVICE_NAME
-    for data in recieving_data():
+    for id_key, data in recieving_data():
         print("received message: %s" % data)
+        print BACK_ID_DICT[id_key]
+        send_back_onion_packet.generate_packet(id_key, CLIENTS_KEYS[id_key],\
+                        BACK_ID_DICT[id_key]['ip'], BACK_ID_DICT[id_key]['port'], 'ACK SWEETIE' )
         
         
 else:

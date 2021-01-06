@@ -5,6 +5,9 @@ import sys , os
 import json_handler
 import random
 import time
+import onion_encryption_decryption
+import hashlib
+
 if sys.stdout != sys.__stdout__:
     sys.stdout = sys.__stdout__
 
@@ -12,22 +15,42 @@ if sys.stdout != sys.__stdout__:
 
 #Encryption Decryption - END
 #handle onion-routing - START
+
+def handle_packet(onion_pkt):
+    udp_data = onion_pkt[UDP].payload.build()
+    print udp_data
+    #try:
+
+    print '----RECIEVED PACKET---'
+    seperator_index = udp_data.index(':')
+    id_key = udp_data[:seperator_index]
+    key_comm_header = udp_data[seperator_index+1:seperator_index +1+ onion_encryption_decryption.KEYS_LEN]
+    dec_sym_key = onion_encryption_decryption.RSA_Decryption(key_comm_header,PRIVATE_KEY)
+    
+    encrypted_pkt = bytes(udp_data[seperator_index +1+ onion_encryption_decryption.KEYS_LEN:])
+    
+    print (onion_encryption_decryption.sym_decryption(encrypted_pkt,dec_sym_key))
+
+
 def manage_communication(UDP_ADDR ,COMMUNICATION_DETAILS):
     """
     manage the part of the client in the onion routing process
     """
-    print  COMMUNICATION_DETAILS["serial_number"]
+    global ID_KEY
     service_public_key = COMMUNICATION_DETAILS["service_public_key"]
     communication_type = COMMUNICATION_DETAILS["communication_type"]
     routers = COMMUNICATION_DETAILS["routers"]
 
 
     #action = raw_input('[SYSTEM - ROUTING] what is the action with this site? --->')
-    action = divide_data("Eran Binet The King"*10)#temp for Testing
-    print len(action)
+    s = ""
+    for i in xrange(50):
+        s += str(i)
+    action = divide_data(s)#temp for Testing
+    print (action)
     for part in action:
 
-        pkt = onion_packet_handler.create_onion_packet(routers, service_public_key, communication_type, part, UDP_ADDR, str(COMMUNICATION_DETAILS["serial_number"]))
+        pkt = onion_packet_handler.create_onion_packet(routers, service_public_key, communication_type, part, UDP_ADDR, str(COMMUNICATION_DETAILS["serial_number"]), ID_KEY)
         #pkt = IP(dst = "www.google.com")/UDP(dport = 50001)/"aaa"
         new_pkt = IP(pkt.build())
         #new_pkt.hexdump()
@@ -35,19 +58,21 @@ def manage_communication(UDP_ADDR ,COMMUNICATION_DETAILS):
         print len(new_pkt[UDP].payload)
         #send(pkt)
         send(new_pkt)
-        time.sleep(0.3)
+        time.sleep(0.2)
     return True
 
 def divide_data(data):
-    jwt = random.randint(0,100)
-    len_of_data = 30
+    global PUBLIC_KEY
+    data = data +"%$%$" + PUBLIC_KEY
+    len_of_data = 15
     repeat_times = len(data)/len_of_data
     data_parts = []
     for i in xrange(repeat_times):
-        data_parts.append(json_handler.create_service_json(data[i*len_of_data:(i+1)*len_of_data], i, jwt))
-    if data[(repeat_times+1)*len_of_data:]:
-        data_parts.append(json_handler.create_service_json(data[(repeat_times+1)*len_of_data:], repeat_times, jwt))
-    data_parts.append(json_handler.create_service_json(repeat_times, 'End', jwt))
+        data_parts.append(json_handler.create_service_json(data[i*len_of_data:(i+1)*len_of_data], i))
+    if data[(repeat_times)*len_of_data:]:
+        data_parts.append(json_handler.create_service_json(data[(repeat_times)*len_of_data:], repeat_times))
+    data_parts.append(json_handler.create_service_json(repeat_times+1, 'End'))
+
     return data_parts
 
 def packet_trace(routers):
@@ -61,6 +86,13 @@ def packet_trace(routers):
 #handle onion-routing - END
 
 #communication with the server - START
+
+
+PUBLIC_KEY, PRIVATE_KEY  =  onion_encryption_decryption.generate_keys((os.getcwd()), 'my')
+ID_KEY  = hashlib.md5(PUBLIC_KEY).digest()
+
+
+
 UDP_IP = '10.0.0.3'#'192.168.1.22' #'192.168.43.207' #'10.0.0.5'
 UDP_PORT = 50100
 UDP_ADDR = (UDP_IP, UDP_PORT)
@@ -76,7 +108,7 @@ has_done = False
 
 
 while 1:
-    onion_url = "S3"#raw_input("please enter the url->")
+    onion_url = "S112"#raw_input("please enter the url->")
     print ('req:%s'%(onion_url,))
     server_sock.send(json_handler.create_json(onion_url))
 
@@ -92,7 +124,9 @@ while 1:
 
         if manage_communication(UDP_ADDR, data["args"]):
             print 'done'
+            sniff(filter = "udp", prn = handle_packet , count = 0)
         else:
             print 'faoled'
 
 #communication with the server - END
+
