@@ -89,7 +89,6 @@ def encrypt_pkt(pkt, communication_type, sym_key, public_key):
 
     encrypted_pkt = sym_encryption((pkt), sym_key)
     encrypted_key_comm_header = RSA_Encryption(bytes(sym_key + str(communication_type)), public_key)
-    print len(encrypted_key_comm_header), len(encrypted_pkt)
     return   encrypted_key_comm_header + encrypted_pkt
 
 def decrypt_data_service(data, PRIVATE_KEY):
