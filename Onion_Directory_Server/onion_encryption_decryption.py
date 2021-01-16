@@ -9,7 +9,6 @@ if sys.stdout != sys.__stdout__:
     sys.stdout = sys.__stdout__
 
 KEYS_LEN = 192#256#384
-
 def generate_keys(MAIN_DIR, name):
     """
     create/ load the keys of the router

@@ -210,24 +210,24 @@ def handle_communication(sock, addr):
     global HANDLE_JSON, BUFSIZ
 
     create_json = json_odidion_support.create_json
-    try:
-        while 1:
-            data = sock.recv(BUFSIZ)
-            if not data:
-                print "ending communication with",addr
-                break
-            print '------------',addr,'--------------'
-            print data
-            print '------------',addr,'--------------'
-            recieved_msg = eval(json.dumps(json.loads(data)))
-            #print (recieved_msg)
-            json_code , state, args = HANDLE_JSON[recieved_msg["type"]](recieved_msg)
-            response = create_json(json_code , state, args)
-            #print response
-            
-            sock.send(response)
-    except: 
-        print "[handle communication] - Error occured!"
+    #try:
+    while 1:
+        data = sock.recv(BUFSIZ)
+        if not data:
+            print "ending communication with",addr
+            break
+        print '------------',addr,'--------------'
+        print data
+        print '------------',addr,'--------------'
+        recieved_msg = eval(json.dumps(json.loads(data)))
+        #print (recieved_msg)
+        json_code , state, args = HANDLE_JSON[recieved_msg["type"]](recieved_msg)
+        response = create_json(json_code , state, args)
+        #print response
+        
+        sock.send(response)
+    #except: 
+    #   print "[handle communication] - Error occured!"
         
    
 
@@ -244,7 +244,7 @@ HANDLE_JSON = {
 #communications:
 
 BUFSIZ = 4096
-HOST = '10.0.0.3'#'192.168.1.22' #'192.168.43.207' #'10.0.0.5'
+HOST = '10.0.0.6'#'192.168.1.22' #'192.168.43.207' #'10.0.0.5'
 
 PORT = 50010
 ADDR = (HOST, PORT)
