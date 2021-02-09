@@ -18,21 +18,23 @@ if sys.stdout != sys.__stdout__:
 #Encryption Decryption - END
 #handle onion-routing - START
 class client:
+    CLIENT_NAME = ""
+     
     TIMEOUT = False
     DATA_FROM_SERVICE = ""
     DATA_TO_SEND = []
-    PUBLIC_KEY, PRIVATE_KEY  =  onion_encryption_decryption.generate_keys((os.getcwd()), 'my')
-    ID_KEY  = hashlib.md5(PUBLIC_KEY).digest()
+    PUBLIC_KEY, PRIVATE_KEY  =  None, None
+    ID_KEY  = None
 
     CURRENT_PKTS = {}#serial_num : pkt
     COMMUNICATION_DETAILS = {}
-    UDP_IP = '10.0.0.6'#'192.168.1.22' #'192.168.43.207' #'10.0.0.5'
-    UDP_PORT = 50100
+    UDP_IP = '10.0.0.7'#'192.168.1.22' #'192.168.43.207' #'10.0.0.5'
+    UDP_PORT = 50101
     UDP_ADDR = (UDP_IP, UDP_PORT)
 
     FIRST_TIME = True
 
-    DIR_SERVER_IP = '10.0.0.6'#'192.168.1.22' #'192.168.43.207' #'10.0.0.5'
+    DIR_SERVER_IP = '10.0.0.7'#'192.168.1.22' #'192.168.43.207' #'10.0.0.5'
     DIR_SERVER_PORT = 50010
     BUFSIZ = 4096 
     DIR_SERVER_ADDR = (DIR_SERVER_IP, DIR_SERVER_PORT)
@@ -40,8 +42,10 @@ class client:
     server_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server_sock.connect(DIR_SERVER_ADDR)
 
-    def __init__(self):
-        pass
+    def __init__(self, client_name):
+        client.CLIENT_NAME = client_name
+        client.PUBLIC_KEY, client.PRIVATE_KEY  =  onion_encryption_decryption.generate_keys((os.getcwd()),client.CLIENT_NAME)
+        client.ID_KEY = hashlib.md5(client.PUBLIC_KEY).digest()
 
     @staticmethod
     def _handle_packet(onion_pkt):
@@ -51,7 +55,7 @@ class client:
         udp_data = onion_pkt[UDP].payload.build()
         
         if onion_pkt[0][2].dport == client.UDP_PORT:
-            onion_pkt[0].display()
+            #onion_pkt[0].display()
             
             seperator_index = udp_data.index(':')
             id_key = udp_data[:seperator_index]
@@ -61,11 +65,12 @@ class client:
             encrypted_pkt = bytes(udp_data[seperator_index +1+ onion_encryption_decryption.KEYS_LEN:])
             
             recv_data = (onion_encryption_decryption.sym_decryption(encrypted_pkt,dec_sym_key))
-            
-            if recv_data[:3] != 'ACK':
+            print '-----------------------------'
+            print recv_data
+            if not recv_data:
                 return False
             else:
-                client.DATA_FROM_SERVICE = recv_data[3:]
+                client.DATA_FROM_SERVICE = recv_data
                 return True
         if time.time() > client.TIMEOUT:
                 client.DATA_FROM_SERVICE = None
@@ -110,13 +115,12 @@ class client:
         #action = raw_input('[SYSTEM - ROUTING] what is the action with this site? --->')
         
         #while client.DATA_TO_SEND[0] != 'END COMM':
-        for s in wait_for_data():
+        for s in client.wait_for_data():
             if s == -1:
                 break
             print 'waiting..'
             data_parts = client._divide_data(s, client.FIRST_TIME)
-            client.DATA_TO_SEND.pop(1)
-            client.FIRST_TIME = False
+            client.DATA_TO_SEND.pop()
             client.send_packets(data_parts, routers, service_public_key, communication_type,\
                                 client.UDP_ADDR, str(client.COMMUNICATION_DETAILS["serial_number"]), client.ID_KEY)
             client.TIMEOUT = time.time() + 10
@@ -162,12 +166,13 @@ class client:
             else:
                 client.COMMUNICATION_DETAILS = data["args"]
                 break
+        client.server_sock.close()
     @staticmethod
     def session():
         for data in client.manage_communication():
             yield data
-            #manage_communication(UDP_ADDR, data["args"])
-        client.FIRST_TIME = True
+            client.FIRST_TIME = False
+            
         yield -1
 
         #communication with the server - END

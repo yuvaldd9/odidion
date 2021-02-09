@@ -93,8 +93,6 @@ def encrypt_pkt(pkt, communication_type, sym_key, public_key):
     return   encrypted_key_comm_header + encrypted_pkt
 
 def decrypt_data_service(data, PRIVATE_KEY):
-    print type(data)
-    print "UDP LOAD:\n",data
     try:
         key_comm_header = data[:KEYS_LEN]
         dec_sym_key = onion_encryption_decryption.RSA_Decryption(key_comm_header,PRIVATE_KEY)

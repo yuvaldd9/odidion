@@ -15,7 +15,6 @@ def create_dataBase(conn, create_cmd):
         cursor = conn.cursor()
         cursor.execute(create_cmd)
         conn.commit()
-        print '[sql management] Table Created...'
 def connect_dataBase(db_dir, create_cmd):
 
     """
@@ -27,13 +26,10 @@ def connect_dataBase(db_dir, create_cmd):
         #create the db file in the directory
         with open(db_dir , 'w') as f:
             just_created = True
-            print 'database handler created -- ' , db_dir  
-
     try:
         conn = lite.connect(db_dir)
     except lite.Error, e:
-        print "Error %s:" % db_dir
-        sys.exit(1)
+        return "Error %s:%s" % (db_dir, e)
     finally:
         if just_created:
             #create the table 
@@ -52,7 +48,6 @@ def get_data(db_dir, command, args = None):
             else:
                 cursor.execute(command)
             data = cursor.fetchall()
-            print '[sql management] got all of the data requested according to:\n--- %s ---\n the data: %s'%(command, data)
             return data
         except:
             return None
@@ -61,7 +56,6 @@ def set_data(db_dir, command, args = None):
     """
     change, deleted, inserted the data according the command
     """
-    print command, args
     with lite.connect((db_dir)) as conn:
         try:
             cursor = conn.cursor()
