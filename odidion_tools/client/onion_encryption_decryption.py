@@ -20,7 +20,7 @@ def generate_keys(MAIN_DIR, name):
      
     PRIVATE_KEY_DIR = "%s\keys\%s_private_key_%s.pem"%(MAIN_DIR,name,"PRIVATE_KEY",)
     PUBLIC_KEY_DIR = "%s\keys\%s_public_key_%s.pem"%(MAIN_DIR,name,"PUBLIC_KEY",)
-    
+    print PUBLIC_KEY_DIR
     if os.path.exists(repr(PRIVATE_KEY_DIR)) and os.path.exists(PUBLIC_KEY_DIR):
         PRIVATE_KEY = RSA.importKey(open(repr(PRIVATE_KEY_DIR) , 'rb')).export_key()
         PUBLIC_KEY = RSA.importKey(open(repr(PUBLIC_KEY_DIR), 'rb')).export_key()
@@ -89,10 +89,11 @@ def encrypt_pkt(pkt, communication_type, sym_key, public_key):
 
     encrypted_pkt = sym_encryption((pkt), sym_key)
     encrypted_key_comm_header = RSA_Encryption(bytes(sym_key + str(communication_type)), public_key)
-
     return   encrypted_key_comm_header + encrypted_pkt
 
 def decrypt_data_service(data, PRIVATE_KEY):
+    print type(data)
+    print "UDP LOAD:\n",data
     try:
         key_comm_header = data[:KEYS_LEN]
         dec_sym_key = onion_encryption_decryption.RSA_Decryption(key_comm_header,PRIVATE_KEY)

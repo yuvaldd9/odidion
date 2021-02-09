@@ -8,15 +8,14 @@ import onion_encryption_decryption
 import json_handler
 import json
 import re
-#Encryption Decryption Funcs - START
-#Encryption Decryption Funcs - END
-#DATABASE - START 
+import verbose 
+
+
 def create_databases():
     """
     create the databases if there are not exist
     {service_name, ip, port, communication_type}
     """
-    print '[Creating / Connecting to the Databases]'
     global SERVICES_DB_DIR
     if not os.path.exists(SERVICES_DB_DIR):
         return db.connect_dataBase(SERVICES_DB_DIR, '''CREATE TABLE services( id INTEGER PRIMARY KEY, service_name TEXT,\
@@ -37,32 +36,32 @@ def connect_to_network(server_sock):
         "port" : CLIENTS_PORT
     }
     connect_req = json_handler.create_json(json_handler.ONION_ROUTER_REGISTER, onion_router_details)
-    print '[connecting]'
     server_sock.send(connect_req)
     while 1:
         data = server_sock.recv(BUFSIZ)
         if not data:
-                print "ending communication with the server"
-                break
-        print data, type(data)
-        #try:
-            #json.dumps(json.loads(data))
-        data = json.loads(data)#eval(data)
-        print data["state"]
-        print json_handler.STATE_SUCCEED
+            VB.print_data("ending communication with the server", VB.ERRORS, verbose_level)
+            break
+        data = json.loads(data)
         if data["state"] == json_handler.STATE_SUCCEED:
             return True
-        #except:
-            print 'failed'
+        elif data["state"] == json_handler.STATE_FAILED:
             return False
+        else:
+            server_sock.send(connect_req)
+    return False
+
 
 def add_service(service_details):
     global SERVICES_DB_DIR 
     global SERVICES
     global SERIAL_NUM_SERVICES
 
-    print db.set_data(SERVICES_DB_DIR, '''INSERT INTO services(service_name, ip, port, communication_type) VALUES(?,?,?,?)''',\
+    upload_done = db.set_data(SERVICES_DB_DIR, '''INSERT INTO services(service_name, ip, port, communication_type) VALUES(?,?,?,?)''',\
             args= (service_details["service_name"], service_details["service_ip"], service_details["service_port"], service_details["service_communication_type"]))
+    if upload_done:
+        VB.print_data("SERVICE UPLOADED SUCCESSFULLY", VB.GENERAL_DATA, VERBOSE_LEVEL)
+
     SERVICES[SERIAL_NUM_SERVICES] = (service_details)#list only for eran's even derach
     return SERIAL_NUM_SERVICES
 
@@ -78,39 +77,33 @@ def handle_keep_alive(server_sock):
     }
     while 1:
         try:        
-            #print 'send [LIVE] to server'
+
             msg = json_handler.create_json(json_handler.ONION_ROUTER_KEEP_ALIVE, keep_alive_details)
-            #print msg
+
             server_sock.send(msg)
             d = server_sock.recv(BUFSIZ)
 
             data = json_handler.recieve_json(d)
             
-            #print 'got %s'%(data,)
+
+            VB.print_data("RECIEVED KEEP ALIVE MSG", VB.SESSION_DATA, VERBOSE_LEVEL)
+
             if not data:
                 break
             elif "new_service" in data["args"].keys():
                 keep_alive_details["service_added"] = (add_service(data["args"]["new_service"]))
                 SERIAL_NUM_SERVICES += 1
             else:
-                #print 'NO UPDATES'
                 if "service_added" in keep_alive_details.keys():
                     del keep_alive_details["service_added"]
 
             time.sleep(5)
         except Exception as e:
-            print e
-            print 'failed'
+            VB.print_data(e, VB.ERRORS, VERBOSE_LEVEL)
             break
 
 def send_to_service(data, src, sport):
     global ROUTING_PROCESSES
-    print "----sending-----"
-    #print data
-    #print (SERVICES[0][1], int(SERVICES[0][3]))
-    """seperator_index = data.index(':')
-    service_name = int(data[:seperator_index])
-    service_data = data[seperator_index+1:]"""
 
     service_details = data.split(':',2)
     service_name, id_key, service_data = int(service_details[0]), service_details[1], service_details[2]
@@ -123,7 +116,7 @@ def send_to_service(data, src, sport):
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.bind(('', CLIENTS_PORT))
     sock.sendto(service_data, (SERVICES[service_name]["service_ip"], int(SERVICES[service_name]["service_port"])))
-    print ROUTING_PROCESSES
+    
     
 def handle_packet(onion_pkt):
     global PRIVATE_KEY
@@ -136,7 +129,9 @@ def handle_packet(onion_pkt):
         #try:
         pkt_purpose = onion_pkt[0][IP].tos
         if pkt_purpose == 0:
-            print '----RECIEVED PACKET TO NEXT NODE'
+            
+            VB.print_data('----RECIEVED PACKET TO NEXT NODE----', VB.PKTS_DATA, VERBOSE_LEVEL)
+            
             seperator_index = udp_data.index(seperator)
             id_key = udp_data[:seperator_index]
             key_comm_header = udp_data[seperator_index+1:seperator_index +1+ onion_encryption_decryption.KEYS_LEN]
@@ -147,24 +142,23 @@ def handle_packet(onion_pkt):
             
             next_pkt = IP(onion_encryption_decryption.sym_decryption(encrypted_pkt,dec_sym_key))
 
-            """if comm_type == '1':
-                curr_communications.append( onion_pkt[0][1].src, onion_pkt[0][1].dst)"""
+           
             ROUTING_PROCESSES[id_key] = {
                 'ip' : onion_pkt[0][IP].src,
                 'port' : onion_pkt[0][UDP].sport
             }
-            #hexdump(next_pkt)
+            
             send(next_pkt)
 
             #except Exception as e:
         elif pkt_purpose == 1:
+            VB.print_data('----RECIEVED PACKET TO SERVICE----', VB.PKTS_DATA, VERBOSE_LEVEL)
             
-            print '----RECIEVED PACKET TO SERVICE'
-            onion_pkt.show()
             encrypted_data = bytes(udp_data[onion_encryption_decryption.KEYS_LEN:])
             send_to_service(udp_data, onion_pkt[0][1].src, onion_pkt[0][1].sport)
         elif pkt_purpose == 2:
-            print '----RECIEVED PACKET TO CLIENT'
+            VB.print_data('----RECIEVED PACKET TO CLIENT----', VB.PKTS_DATA, VERBOSE_LEVEL)
+            
             seperator_index = udp_data.index(seperator)
             id_key = udp_data[:seperator_index]
             
@@ -188,6 +182,8 @@ SERVICES = {} # {service_name : {ip, port, communication_type}} dict of  diction
 SERIAL_NUM_SERVICES = 1
 ROUTER_NAME = sys.argv[1] #cmd input
 CLIENTS_PORT = int(sys.argv[2]) #cmd input
+VERBOSE_LEVEL = int(sys.argv[3]) #cmd input
+VB = verbose.verbose()
 
 SERVICES_DB_DIR = "%s\%s_services.db"%(os.getcwd(), ROUTER_NAME)
 
@@ -199,14 +195,15 @@ PUBLIC_KEY, PRIVATE_KEY  =  onion_encryption_decryption.generate_keys((os.getcwd
 
 #Encryption Decryption Global Vars - END
 #server - router - communication - END
-DIR_SERVER_IP = '10.0.0.6'#'192.168.1.22' #'192.168.43.207' #'10.0.0.5'
+DIR_SERVER_IP = '10.0.0.7'#'192.168.1.22' #'192.168.43.207' #'10.0.0.5'
 DIR_SERVER_PORT = 50010
 BUFSIZ = 1024
 DIR_SERVER_ADDR = (DIR_SERVER_IP, DIR_SERVER_PORT)
 server_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server_sock.connect(DIR_SERVER_ADDR)
 
-create_databases()
+if create_databases():
+    VB.print_data('DATABASES CONNECTED', VB.GENERAL_DATA, VERBOSE_LEVEL)
 
 if connect_to_network(server_sock):#"blocking - handle the handshake"
     thread.start_new_thread(handle_keep_alive,(server_sock,))
@@ -214,7 +211,7 @@ if connect_to_network(server_sock):#"blocking - handle the handshake"
         sniff(filter = "udp", prn = handle_packet , count = 0)
 else:
     server_sock.close()
-    print '[failed to connect the server]'
+    VB.print_data('[failed to connect the server]', VB.ERRORS, VERBOSE_LEVEL)
 #server - router - communication - END
 
 #waiting and handling packets - START

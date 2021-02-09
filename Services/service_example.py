@@ -121,6 +121,8 @@ BACK_ID_DICT = {} #id_key :
 CLIENTS_KEYS = {} # id_key : public key
 SENT_KEY = defaultdict(bool) # id_key : expect to key?
 CLIENTS_SEND_AGAIN_REQS = defaultdict(list) # id_key : [numbers...]
+
+
 if register_service(DIR_SERVER_SOCKET, UDP_ADDR, 0):
     print 'connected', SERVICE_NAME
     for id_key, data in recieving_data():

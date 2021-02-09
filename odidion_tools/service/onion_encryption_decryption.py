@@ -46,7 +46,7 @@ def RSA_Decryption(hex_pkt, PRIVATE_KEY):
     """
     get the encrypted part of the packet and decrypt it.
     """
-    print len(hex_pkt), type(hex_pkt),'\nPKT: ', hex_pkt,"\n", len(bytes((hex_pkt))),'\n',bytes((hex_pkt))
+    #print len(hex_pkt), type(hex_pkt),'\nPKT: ', hex_pkt,"\n", len(bytes((hex_pkt))),'\n',bytes((hex_pkt))
     decryptor = PKCS1_OAEP.new(str_to_RSAKey(PRIVATE_KEY))
     decrypted_Packet = decryptor.decrypt((hex_pkt))
 
@@ -93,11 +93,17 @@ def encrypt_pkt(pkt, communication_type, sym_key, public_key):
     return   encrypted_key_comm_header + encrypted_pkt
 
 def decrypt_data_service(data, PRIVATE_KEY):
+    #print type(data)
+    #print "UDP LOAD:\n",data
+    
+    global KEYS_LEN
     try:
         key_comm_header = data[:KEYS_LEN]
-        dec_sym_key = onion_encryption_decryption.RSA_Decryption(key_comm_header,PRIVATE_KEY)
-        encrypted_data = (data[onion_encryption_decryption.KEYS_LEN:])
-        return onion_encryption_decryption.sym_decryption(encrypted_data,dec_sym_key)
+        dec_sym_key = RSA_Decryption(key_comm_header,PRIVATE_KEY)
+        encrypted_data = (data[KEYS_LEN:])
+
+        #print '---length of encrypted sym key      ', len(key_comm_header)
+        return sym_decryption(encrypted_data,dec_sym_key)
     except:
         return "FAILED IN DECRYPTION"
         
