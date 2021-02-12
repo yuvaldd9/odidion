@@ -9,7 +9,7 @@ def handle_data(data):
     return str(i + 1)
 
 
-if s.bind_and_set_service('Service1', '10.0.0.7', 50021):
+if s.bind_and_set_service('Service1', '192.168.0.100', 50021):
     print 'binded'
     s.register_service()
     print 'registered'

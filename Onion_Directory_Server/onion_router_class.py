@@ -1,9 +1,9 @@
 import database_handler as db
 import time
-import global_variables
+from global_variables import *
 import onion_encryption_decryption
 class onion_router:
-    db_dir = global_variables.ONION_ROUTERS_DB_DIR
+    db_dir = ONION_ROUTERS_DB_DIR
     #router_name, ip, port, public_key_dir
     def __init__(self, router_details):
         #services <---> array of (name , ip,port, communication_type) - the router is the ren point of the services
@@ -17,20 +17,20 @@ class onion_router:
         self.is_exist_in_database = False
         if self.is_exist_in_database:
             self.service = (db.get_data(onion_router.db_dir,"SELECT service_str from onion_routers WHERE router_name = %s"%(self.router_name,)))
-            print 'updating data for %s router'%(self.router_name,)
-            print db.set_data(onion_router.db_dir, '''UPDATE onion_routers SET ip = \'%s\', port = \'%s\', is_available = \'%s\', last_seen = \'%s\', service_str =  \'%s\'\
-                                        WHERE router_name = \'%s\''''%(self.ip, self.port, int(self.is_available),self.last_seen, self.router_name, self.services_to_str(self.services)))
+            #print 'updating data for %s router'%(self.router_name,)
+            VB.print_data(db.set_data(onion_router.db_dir, '''UPDATE onion_routers SET ip = \'%s\', port = \'%s\', is_available = \'%s\', last_seen = \'%s\', service_str =  \'%s\'\
+                                        WHERE router_name = \'%s\''''%(self.ip, self.port, int(self.is_available),self.last_seen, self.router_name, self.services_to_str(self.services))), VB.GENERAL_DATA)
         else:
-            print 'new router added to the database'
+            #print 'new router added to the database'
             self.services = None
-            print db.set_data(onion_router.db_dir, '''INSERT INTO onion_routers(router_name, ip, port, load, is_available,last_seen,public_key_dir, service_str)\
-                                    VALUES(?,?,?,?,?,?,?,?)''', args = (self.router_name, self.ip, self.port, self.load, int(self.is_available), str(self.last_seen), self.public_key_dir ,self.services_to_str(self.services)))
+            VB.print_data(db.set_data(onion_router.db_dir, '''INSERT INTO onion_routers(router_name, ip, port, load, is_available,last_seen,public_key_dir, service_str)\
+                                    VALUES(?,?,?,?,?,?,?,?)''', args = (self.router_name, self.ip, self.port, self.load, int(self.is_available), str(self.last_seen), self.public_key_dir ,self.services_to_str(self.services))), VB.GENERAL_DATA)
             
     def __is_router_exist(router_name):
         """
         return true if the router is written in the routers database and false if not
         """
-        print '[Checking if %s in the routers database]'%(router_name,)
+        #print '[Checking if %s in the routers database]'%(router_name,)
         routers =  db.get_data(onion_router.db_dir,'''SELECT * from onion_routers''')
         for router in routers:
             if router[1] == router_name:

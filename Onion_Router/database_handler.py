@@ -7,6 +7,8 @@ first name | last name | username | password(hashed) | ip | setting(formated)
 """
 import sqlite3 as lite
 import os
+from global_variables import *
+
 def create_dataBase(conn, create_cmd):
     """
     creates the table in the db file
@@ -64,7 +66,7 @@ def set_data(db_dir, command, args = None):
             else:
                 cursor.execute(command)
             conn.commit()
-            print '[sql management] set successfully the data according to:\n--- %s ---'%(command )
+            VB.print_data('[sql management] set successfully the data according to:\n--- %s ---'%(command ), VB.GENERAL_DATA)
             return True
         except:
             return False
