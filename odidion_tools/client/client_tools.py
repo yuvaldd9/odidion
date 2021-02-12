@@ -21,6 +21,7 @@ class client:
     CLIENT_NAME = ""
      
     TIMEOUT = False
+    SPLITTED_DATA = {}
     DATA_FROM_SERVICE = ""
     DATA_TO_SEND = []
     PUBLIC_KEY, PRIVATE_KEY  =  None, None
@@ -64,19 +65,23 @@ class client:
             
             encrypted_pkt = bytes(udp_data[seperator_index +1+ onion_encryption_decryption.KEYS_LEN:])
             
-            recv_data = (onion_encryption_decryption.sym_decryption(encrypted_pkt,dec_sym_key))
-            print '-----------------------------'
+            recv_data = json_handler.recieve_json(onion_encryption_decryption.sym_decryption(encrypted_pkt,dec_sym_key))
             print recv_data
-            if not recv_data:
-                return False
+            if recv_data["serial_num"] != 'End':
+                client.SPLITTED_DATA[recv_data["serial_num"]] = recv_data["data"]
             else:
-                client.DATA_FROM_SERVICE = recv_data
+                client.connect_data()
+                print '-------------------------------------->'
                 return True
-        if time.time() > client.TIMEOUT:
+            if time.time() > client.TIMEOUT:
                 client.DATA_FROM_SERVICE = None
                 return True
             
-        
+    @staticmethod
+    def connect_data():
+        for i in xrange(len(client.SPLITTED_DATA.keys())):
+            client.DATA_FROM_SERVICE += client.SPLITTED_DATA[i]
+
     @staticmethod
     def send_packets(data_parts, routers, service_public_key, communication_type, UDP_ADDR, serial_num, ID_KEY):
         for part in data_parts.itervalues():
@@ -123,8 +128,9 @@ class client:
             client.DATA_TO_SEND.pop()
             client.send_packets(data_parts, routers, service_public_key, communication_type,\
                                 client.UDP_ADDR, str(client.COMMUNICATION_DETAILS["serial_number"]), client.ID_KEY)
-            client.TIMEOUT = time.time() + 10
+            client.TIMEOUT = time.time() + 60
             sniff(filter = "udp", stop_filter = client._handle_packet)
+    
             if not client.DATA_FROM_SERVICE:
                 print 'WE LOST HIM'
                 break
@@ -170,8 +176,11 @@ class client:
     @staticmethod
     def session():
         for data in client.manage_communication():
+            print data
             yield data
             client.FIRST_TIME = False
+            client.SPLITTED_DATA = {}
+            client.DATA_FROM_SERVICE = ""
             
         yield -1
 

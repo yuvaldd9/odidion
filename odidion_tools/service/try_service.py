@@ -2,14 +2,14 @@ from service_tools import service as s
 
 
 def handle_data(data):
-    try:
-        i = int(data)
-    except:
-        i = 0
-    return str(i + 1)
+    dirs = {
+        '1' : r"C:\Users\yuval\Desktop\didi_store\main_server.py"
+    }
+    with open(dirs['1'], 'rb') as f:
+        a =  f.read()
+    return a
 
-
-if s.bind_and_set_service('Service1', '192.168.0.100', 50021):
+if s.bind_and_set_service('Service411', '192.168.0.100', 50021):
     print 'binded'
     s.register_service()
     print 'registered'

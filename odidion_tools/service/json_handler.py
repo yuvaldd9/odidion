@@ -18,6 +18,13 @@ def create_json(topic, args):
         "main_topic" : topic,
         "args" : args
     })
+
+def create_reply_json(data_sent, serial_num):
+    return json.dumps({
+        "serial_num" : serial_num,
+        "data" : data_sent
+    })
+
 def recieve_json(json_data):
     try:
         return json.loads(json_data)
