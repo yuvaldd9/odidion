@@ -29,7 +29,7 @@ class service:
                                         '''%(self.ip, self.port, self.communication_type, self.ren_ip, self.ren_name, self.service_name)), VB.GENERAL_DATA)
     def add_serial_number(self, serial_num):
         self.serial_number = serial_num
-        #print db.set_data(service.db_dir, '''UPDATE services SET serial_number = \'%s\' WHERE service_name = \'%s\''''%(self.serial_number, self.service_name))
+        VB.print_data(db.set_data(service.db_dir, '''UPDATE services SET serial_number = \'%s\' WHERE service_name = \'%s\''''%(self.serial_number, self.service_name)), VB.GENERAL_DATA)
 
     def get_details(self):
         """

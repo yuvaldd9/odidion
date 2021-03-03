@@ -20,11 +20,15 @@ def create_json(topic, args):
     })
 
 def create_reply_json(data_sent, serial_num):
-    return json.dumps({
+    return str({
         "serial_num" : serial_num,
         "data" : data_sent
     })
-
+    
+    """json.dumps({
+        "serial_num" : serial_num,
+        "data" : data_sent
+    }, encoding='latin1')"""
 def recieve_json(json_data):
     try:
         return json.loads(json_data)

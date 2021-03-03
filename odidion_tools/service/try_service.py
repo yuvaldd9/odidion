@@ -1,19 +1,24 @@
-from service_tools import service as s 
-
+from service_tools import Service
+import json
 
 def handle_data(data):
     dirs = {
-        '1' : r"C:\Users\yuval\Desktop\didi_store\main_server.py"
+        'king' : r"C:\Users\yuval\Desktop\odidion\odidion\odidion_tools\service\Files\king.jpg",
+        'money' : r"C:\Users\yuval\Desktop\odidion\odidion\odidion_tools\service\Files\money.jpg",
+        'nature' : r"C:\Users\yuval\Desktop\odidion\odidion\odidion_tools\service\Files\nature.jpg",
+        'trump' : r"C:\Users\yuval\Desktop\odidion\odidion\odidion_tools\service\Files\trump.jpg"
     }
-    with open(dirs['1'], 'rb') as f:
+    with open(dirs[data["Pic Name"]], 'rb') as f:
         a =  f.read()
+    print type(a)
     return a
-
-if s.bind_and_set_service('Service411', '192.168.0.100', 50021):
+s = Service()
+if s.bind_and_set_service('S1', '10.0.0.7', 50021):
     print 'binded'
     s.register_service()
     print 'registered'
 
     for id_key, data in s.recieve_from_clients():
         print id_key, data
-        s.send_to_client(id_key, handle_data(data))
+        data = eval(data)
+        s.send_to_client(id_key, handle_data(data["ARGS"]))

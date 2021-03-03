@@ -19,6 +19,8 @@ def divide_data(data):
     return data_parts
 
 def generate_packet(id_key, client_public_key, back_ip, back_port, data):
+    if not data:
+        data = 'DATA RECIEVED'
     messages = divide_data(data)
     sym_key = onion_encryption_decryption.generate_sym_key()
     for data in messages:
