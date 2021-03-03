@@ -19,17 +19,17 @@ class service:
 
         
         if is_new:
-            print "[SERVICES] adding the service to database"
-            print db.set_data(service.db_dir, '''INSERT INTO services(service_name , service_port ,ip, ren_ip , ren_name, communication_type ,public_key_dir, serial_number) VALUES(?,?,?,?,?,?,?,?)'''
-                            , args = (self.service_name, self.port, self.ip, self.ren_ip, self.ren_name ,self.communication_type,self.public_key_dir, self.serial_number))
+            VB.print_data( "[SERVICES] adding the service to database", VB.GENERAL_DATA)
+            VB.print_data(db.set_data(service.db_dir, '''INSERT INTO services(service_name , service_port ,ip, ren_ip , ren_name, communication_type ,public_key_dir, serial_number) VALUES(?,?,?,?,?,?,?,?)'''
+                            , args = (self.service_name, self.port, self.ip, self.ren_ip, self.ren_name ,self.communication_type,self.public_key_dir, self.serial_number)), VB.GENERAL_DATA)
         else:
-            print 'updating data for %s router'%(self.service_name,)
-            print db.set_data(service.db_dir, '''UPDATE services SET ip = \'%s\', port = \'%s\', communication_type = \'%s\, ren_ip =  \'%s\'
+            VB.print_data('updating data for %s router'%(self.service_name,), VB.GENERAL_DATA)
+            VB.print_data(db.set_data(service.db_dir, '''UPDATE services SET ip = \'%s\', port = \'%s\', communication_type = \'%s\, ren_ip =  \'%s\'
                                         WHERE service_name = \'%s\'\
-                                        '''%(self.ip, self.port, self.communication_type, self.ren_ip, self.ren_name, self.service_name))
+                                        '''%(self.ip, self.port, self.communication_type, self.ren_ip, self.ren_name, self.service_name)), VB.GENERAL_DATA)
     def add_serial_number(self, serial_num):
         self.serial_number = serial_num
-        print db.set_data(service.db_dir, '''UPDATE services SET serial_number = \'%s\' WHERE service_name = \'%s\''''%(self.serial_number, self.service_name))
+        VB.print_data(db.set_data(service.db_dir, '''UPDATE services SET serial_number = \'%s\' WHERE service_name = \'%s\''''%(self.serial_number, self.service_name)), VB.GENERAL_DATA)
 
     def get_details(self):
         """

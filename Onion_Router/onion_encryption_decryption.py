@@ -3,7 +3,7 @@ from Crypto.Cipher import PKCS1_OAEP
 from cryptography.fernet import Fernet
 import binascii
 import sys , os
-
+from global_variables import *
 
 if sys.stdout != sys.__stdout__:
     sys.stdout = sys.__stdout__
@@ -46,7 +46,7 @@ def RSA_Decryption(hex_pkt, PRIVATE_KEY):
     """
     get the encrypted part of the packet and decrypt it.
     """
-    print len(hex_pkt), type(hex_pkt),'\nPKT: ', hex_pkt,"\n", len(bytes((hex_pkt))),'\n',bytes((hex_pkt))
+    VB.print_data((len(hex_pkt), type(hex_pkt),'\nPKT: ', hex_pkt,"\n", len(bytes((hex_pkt))),'\n',bytes((hex_pkt))), VB.PKTS_DATA)
     decryptor = PKCS1_OAEP.new(str_to_RSAKey(PRIVATE_KEY))
     decrypted_Packet = decryptor.decrypt((hex_pkt))
 

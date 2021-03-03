@@ -14,14 +14,12 @@ def handle_client(json_msg):
     topics = {
         CLIENT_REQ : client_req_handler.get_service
     }
-    print json_msg, type(json_msg)
     return topics[json_msg["main_topic"]](json_msg["args"]["service_name"])
 
 def handle_service(json_msg):
     topics = {
         SERVICE_REGISTER : register_service
     }
-    print json_msg, type(json_msg)
     return topics[json_msg["main_topic"]](json_msg["args"])
     """
         handle client, service communication
@@ -69,8 +67,6 @@ def handle_router(json_msg):
         ONION_ROUTER_REGISTER : register_router, 
         ONION_ROUTER_KEEP_ALIVE : keep_alive_handler.recieve_keep_alive
     }
-    #print json_msg, type(json_msg)
-
     return topics[json_msg["main_topic"]](json_msg["args"])
 
 def register_router(json_msg):
@@ -88,7 +84,7 @@ def register_router(json_msg):
     }
     """
 
-    print '[Adding Onion Router:%s:To The System]'%(json_msg["router_name"],)
+    VB.print_data( '[Adding Onion Router:%s:To The System]'%(json_msg["router_name"],), VB.REGISTER)
 
     last_seen = time.time() 
     public_key_dir = onion_encryption_decryption.save_pukey(json_msg["router_name"], json_msg["public_key"])
@@ -101,6 +97,7 @@ def register_router(json_msg):
 
 def register_service(details_dict):
 
+    VB.print_data( '[Adding new Service:%s:To The System]'%(details_dict["service_name"],), VB.REGISTER)
     public_key_dir = onion_encryption_decryption.save_pukey(details_dict["service_name"], details_dict["public_key"])
     service_details = details_dict
     service_details["public_key_dir"] = public_key_dir

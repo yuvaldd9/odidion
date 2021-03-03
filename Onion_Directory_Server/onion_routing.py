@@ -19,7 +19,7 @@ def choose_routers(ren_name):
     """
     global ONION_ROUTERS_DB_DIR
     routers = db.get_data(ONION_ROUTERS_DB_DIR, '''SELECT router_name, ip, port, load, public_key_dir from onion_routers''')
-    print routers
+
 
     clients_routers = {'3' : filter(lambda details: details[0] == ren_name, routers)[0]}
     routers.remove(clients_routers['3'])
@@ -32,6 +32,4 @@ def choose_routers(ren_name):
         clients_routers[key] = (clients_routers[key][0].encode('utf-8'), clients_routers[key][1].encode('utf-8'),\
                                          clients_routers[key][2], get_public_key(clients_routers[key][4].encode('utf-8')))
 
-
-    print clients_routers
     return clients_routers

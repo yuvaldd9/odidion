@@ -45,7 +45,6 @@ def RSA_Decryption(hex_pkt, PRIVATE_KEY):
     """
     get the encrypted part of the packet and decrypt it.
     """
-    print len(hex_pkt), type(hex_pkt),'\nPKT: ', hex_pkt,"\n", len(bytes((hex_pkt))),'\n',bytes((hex_pkt))
     decryptor = PKCS1_OAEP.new(str_to_RSAKey(PRIVATE_KEY))
     decrypted_Packet = decryptor.decrypt((hex_pkt))
 
@@ -90,7 +89,6 @@ def save_pukey(name, public_key):
         return ''
 
 def get_public_key(key_path):
-    print 'taking the f key'
     try:
         with open(key_path, 'r') as f:
             key = f.read()
