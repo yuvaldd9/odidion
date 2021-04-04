@@ -110,4 +110,3 @@ def register_service(details_dict):
 
 
 
-

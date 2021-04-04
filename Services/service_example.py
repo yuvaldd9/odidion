@@ -98,12 +98,12 @@ def recieving_data():
                 yield id_key, data
 
             
-UDP_IP = '10.0.0.6'#'192.168.1.22' #'192.168.43.207' #'10.0.0.5'
+UDP_IP = '10.0.0.6'#'192.168.1.22' #'192.168.43.207' #"10.0.0.7"
 UDP_PORT = 50018
 BUFSIZ = 1024
 
 
-DIR_SERVER_IP =  '10.0.0.6'#'192.168.1.22' #'192.168.43.207' #'10.0.0.5'
+DIR_SERVER_IP =  '10.0.0.6'#'192.168.1.22' #'192.168.43.207' #"10.0.0.7"
 DIR_SERVER_PORT = 50010
 DIR_SERVER_ADDR = (DIR_SERVER_IP,DIR_SERVER_PORT)
 

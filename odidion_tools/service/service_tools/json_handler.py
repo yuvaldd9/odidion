@@ -34,3 +34,9 @@ def recieve_json(json_data):
         return json.loads(json_data)
     except:
         return None
+
+def web_header_json(data, _):
+    return str({
+        "serial_num" : 'WEB REPLIES',
+        "data" : data
+    })

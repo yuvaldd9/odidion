@@ -10,4 +10,4 @@ SERVICES_ROUTERS = {} # "service name" : "router name"
 SERVICES = {} # service name : service object
 SERVICES_UPDATES = {} #router name : the new service.
 
-VB = verbose.verbose()
+VB = verbose.Verbose("Directory_Server")

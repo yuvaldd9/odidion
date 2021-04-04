@@ -50,7 +50,7 @@ def generate_packet(src_router, dest_router, communication_type, data, ID_KEY,se
         data = service_name + ":" + ID_KEY +":"+msg
         id_packet = 1
     else:
-        data = ID_KEY +":"+data
+        data = ID_KEY +":"+r'%s'%(data,)
         id_packet = 0
     l3_ip = IP(src = src_router["router_ip"], dst = dest_router["router_ip"], tos = id_packet)
     l4_UDP = UDP(dport = dest_router["router_port"], sport = src_router["router_port"])

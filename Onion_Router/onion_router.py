@@ -28,7 +28,7 @@ def connect_to_network(server_sock):
     """
     onion_router_details = {
         "router_name" : global_variables.ROUTER_NAME,
-        "ip" : global_variables.DIR_SERVER_IP,
+        "ip" : global_variables.ROUTER_IP,
         "public_key" : PUBLIC_KEY,
         "port" : global_variables.CLIENTS_PORT
     }
@@ -72,14 +72,14 @@ def handle_keep_alive(server_sock):
         try:        
 
             msg = json_handler.create_json(json_handler.ONION_ROUTER_KEEP_ALIVE, keep_alive_details)
-            global_variables.VB.print_data(msg, global_variables.VB.SESSION_DATA)
+            global_variables.VB.print_data(msg, global_variables.VB.KEEP_ALIVE)
             server_sock.send(msg)
             d = server_sock.recv(global_variables.BUFSIZ)
 
             data = json_handler.recieve_json(d)
             
 
-            global_variables.VB.print_data("RECIEVED KEEP ALIVE MSG", global_variables.VB.RECIEVED_DATA)
+            global_variables.VB.print_data("RECIEVED KEEP ALIVE MSG", global_variables.VB.KEEP_ALIVE)
 
             if not data:
                 break
@@ -96,7 +96,6 @@ def handle_keep_alive(server_sock):
             break
 
 def send_to_service(data, src, sport):
-    print global_variables.SERVICES
     service_details = data.split(':',2)
     service_name, id_key, service_data = int(service_details[0]), service_details[1], service_details[2]
     
@@ -111,53 +110,55 @@ def send_to_service(data, src, sport):
     
     
 def handle_packet(onion_pkt):
-
-    seperator = (':')
-    if onion_pkt[0][2].dport == global_variables.CLIENTS_PORT:
-        udp_data = onion_pkt[UDP].payload.build()
     
-        pkt_purpose = onion_pkt[0][IP].tos
-        if pkt_purpose == 0:
-            
-            global_variables.VB.print_data('----RECIEVED PACKET TO NEXT NODE----', global_variables.VB.PKTS_DATA)
-            
-            seperator_index = udp_data.index(seperator)
-            id_key = udp_data[:seperator_index]
-            key_comm_header = udp_data[seperator_index+1:seperator_index +1+ onion_encryption_decryption.KEYS_LEN]
-            dec_sym_key = onion_encryption_decryption.RSA_Decryption(key_comm_header,PRIVATE_KEY)[:-1]# the slicing may change because the len analyzing(in the future)
-            comm_type = dec_sym_key[len(dec_sym_key)-1:] #for the comm handler(after the poc)
-            
-            encrypted_pkt = bytes(udp_data[seperator_index +1+ onion_encryption_decryption.KEYS_LEN:])
-            
-            next_pkt = IP(onion_encryption_decryption.sym_decryption(encrypted_pkt,dec_sym_key))
+    seperator = ':'
+    try:
+        if onion_pkt[0][2].dport == global_variables.CLIENTS_PORT:
+            udp_data = onion_pkt[UDP].payload.build()
+        
+            pkt_purpose = onion_pkt[0][IP].tos
+            if pkt_purpose == 0:
+                
+                global_variables.VB.print_data('----RECIEVED PACKET TO NEXT NODE----', global_variables.VB.PKTS_DATA)
+                
+                seperator_index = udp_data.index(seperator)
+                id_key = udp_data[:seperator_index]
+                key_comm_header = udp_data[seperator_index+1:seperator_index +1+ onion_encryption_decryption.KEYS_LEN]
+                dec_sym_key = onion_encryption_decryption.RSA_Decryption(key_comm_header,PRIVATE_KEY)[:-1]# the slicing may change because the len analyzing(in the future)
+                comm_type = dec_sym_key[len(dec_sym_key)-1:] #for the comm handler(after the poc)
+                
+                encrypted_pkt = bytes(udp_data[seperator_index +1+ onion_encryption_decryption.KEYS_LEN:])
+                
+                next_pkt = IP(onion_encryption_decryption.sym_decryption(encrypted_pkt,dec_sym_key))
 
-           
-            global_variables.ROUTING_PROCESSES[id_key] = {
-                'ip' : onion_pkt[0][IP].src,
-                'port' : onion_pkt[0][UDP].sport
-            }
             
-            send(next_pkt)
+                global_variables.ROUTING_PROCESSES[id_key] = {
+                    'ip' : onion_pkt[0][IP].src,
+                    'port' : onion_pkt[0][UDP].sport
+                }
+                scapy_sock.send(next_pkt)
 
-            #except Exception as e:
-        elif pkt_purpose == 1:
-            global_variables.VB.print_data('----RECIEVED PACKET TO SERVICE----', global_variables.VB.PKTS_DATA)
-            
-            encrypted_data = bytes(udp_data[onion_encryption_decryption.KEYS_LEN:])
-            send_to_service(udp_data, onion_pkt[0][1].src, onion_pkt[0][1].sport)
-        elif pkt_purpose == 2:
-            global_variables.VB.print_data('----RECIEVED PACKET TO CLIENT----', global_variables.VB.PKTS_DATA)
-            
-            seperator_index = udp_data.index(seperator)
-            id_key = udp_data[:seperator_index]
-            
-            client_data = bytes(udp_data[seperator_index +1:])
-            
-            next_pkt = IP(dst = global_variables.ROUTING_PROCESSES[id_key]['ip'], tos = 2)\
-                            /UDP(dport = global_variables.ROUTING_PROCESSES[id_key]['port'])/Raw(load = id_key + ':' + client_data)
+                #except Exception as e:
+            elif pkt_purpose == 1:
+                global_variables.VB.print_data('----RECIEVED PACKET TO SERVICE----', global_variables.VB.PKTS_DATA)
+                
+                encrypted_data = bytes(udp_data[onion_encryption_decryption.KEYS_LEN:])
+                send_to_service(udp_data, onion_pkt[0][1].src, onion_pkt[0][1].sport)
+            elif pkt_purpose == 2:
+                global_variables.VB.print_data('----RECIEVED PACKET TO CLIENT----', global_variables.VB.PKTS_DATA)
+                
+                seperator_index = udp_data.index(seperator)
+                id_key = udp_data[:seperator_index]
+                
+                client_data = bytes(udp_data[seperator_index +1:])
+                
+                next_pkt = IP(dst = global_variables.ROUTING_PROCESSES[id_key]['ip'], tos = 2)\
+                                /UDP(dport = global_variables.ROUTING_PROCESSES[id_key]['port'])/Raw(load = id_key + ':' + client_data)
 
-            send(next_pkt)
-
+                scapy_sock.send(next_pkt)
+            
+    except:
+        pass
             
 
 
@@ -167,9 +168,9 @@ def handle_packet(onion_pkt):
 
 global_variables.ROUTER_NAME = sys.argv[1] #cmd input
 global_variables.CLIENTS_PORT = int(sys.argv[2]) #cmd input
+global_variables.VB.set_name(global_variables.ROUTER_NAME)
 global_variables.VB.set_level( int(sys.argv[3])) #cmd input
 
-print global_variables.VB.VERBOSE_LEVEL
 
 global_variables.SERVICES_DB_DIR = "%s\%s_services.db"%(os.getcwd(), global_variables.ROUTER_NAME)
 
@@ -184,6 +185,8 @@ PUBLIC_KEY, PRIVATE_KEY  =  onion_encryption_decryption.generate_keys((os.getcwd
 
 server_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server_sock.connect(global_variables.DIR_SERVER_ADDR)
+
+scapy_sock = conf.L3socket()
 
 if create_databases():
     global_variables.VB.print_data('DATABASES CONNECTED', global_variables.VB.GENERAL_DATA)
