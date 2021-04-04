@@ -51,6 +51,7 @@ def RSA_Decryption(hex_pkt, PRIVATE_KEY):
     decrypted_Packet = decryptor.decrypt((hex_pkt))
 
     return decrypted_Packet
+
 def RSA_Encryption(data, public_key):
     """
     returns the encrypted data according to the public key
@@ -60,6 +61,7 @@ def RSA_Encryption(data, public_key):
     encryptor = PKCS1_OAEP.new(pubKey)
     encrypted = encryptor.encrypt(data)
     return encrypted
+
 def sym_decryption(data, sym_key):
     f1 = Fernet(sym_key)
     return (f1.decrypt(data))
@@ -74,6 +76,7 @@ def generate_sym_key():
     returns the sym-key - FERNET - str length = 44
     """
     return Fernet.generate_key()
+
 def str_to_RSAKey(key_str):
     return RSA.importKey(key_str)
 

@@ -1,41 +1,25 @@
+import thread
 import os
 import json
+import pickle
+
 import onion_encryption_decryption 
 import send_back_onion_packet
 import json_handler
-from socket import *
+
 from collections import defaultdict
+from socket import *
+
 
 class Service():
-    UDP_IP = None#'10.0.0.6'#'192.168.1.22' #'192.168.43.207' #'10.0.0.5'
-    UDP_PORT = None#50018
-    BUFSIZ = None
+    def __init__(self, web_path = False):
 
-    DIR_SERVER_IP = '10.0.0.7'#'192.168.1.22' #'192.168.43.207' #'10.0.0.5'
-    DIR_SERVER_PORT = 50010
-    DIR_SERVER_ADDR = (DIR_SERVER_IP,DIR_SERVER_PORT)
-
-    DIR_SERVER_SOCKET = socket(AF_INET, SOCK_STREAM)
-    DIR_SERVER_SOCKET.connect(DIR_SERVER_ADDR)
-
-    sock = socket(AF_INET,SOCK_DGRAM)
-
-    PUBLIC_KEY = None
-    PRIVATE_KEY = None
-    SERVICE_NAME = None
-    
-    BACK_ID_DICT = {} #id_key : 
-    CLIENTS_KEYS = {} # id_key : public key
-    SENT_KEY = defaultdict(bool) # id_key : expect to key?
-    CLIENTS_SEND_AGAIN_REQS = defaultdict(list) # id_key : [numbers...]
-        
-    def __init__(self):
         self.udp_ip = None
         self.udp_port = None
         self.bufsiz = None
 
-        self.dir_server_ip = None
-        self.dir_server_port = None 
+        self.dir_server_ip = "10.0.0.7"
+        self.dir_server_port = 50010 
         self.dir_server_addr = (self.dir_server_ip, self.dir_server_port)
 
         self.dir_server_socket = socket(AF_INET, SOCK_STREAM)
@@ -52,6 +36,17 @@ class Service():
         self.sent_key = defaultdict(bool)
         self.clients_send_again_regs = defaultdict(list)
         
+        self.messages = defaultdict(dict)
+        if web_path:
+
+            thread.start_new_thread(os.system,(web_path,))
+            
+            self.is_web_service = True
+            self.flask_sock = socket(AF_INET, SOCK_STREAM)
+            self.flask_sock.connect(('127.0.0.1', 5000)) # 5000 is the default port of flask
+        else:
+            self.is_web_service = False
+
 
     def bind_and_set_service(self, service_name, ip, port, bufsiz = 1024 ):
         try:
@@ -61,7 +56,7 @@ class Service():
             self.service_name = service_name
             self.public_key, self.private_key  =  onion_encryption_decryption.generate_keys((os.getcwd()), self.service_name)
             self.service_sock.bind((ip, port))
-            print self.udp_ip,   self.udp_port, self.bufsiz,self.service_name
+    
             return True
         except:
             return False
@@ -98,23 +93,48 @@ class Service():
             state_handler[data["state"]](self.dir_server_socket, register_json)
         
 
-    def connect_data(self, id_key, dict_data_parts, parts):
+    def connect_data(self, id_key, parts):
         data = ""
+        
         for i in xrange(parts):
             try:
-                print dict_data_parts[i]["data"]
-                data += dict_data_parts[i]["data"]
-            except:
+                data += self.messages[id_key][i]["d"]
+            except Exception as e:
+                print(e)
+                print i
                 self.clients_send_again_regs[id_key].append(i)
                 data += "[NULL - %s]"%(i,)
-
+        
         if self.clients_send_again_regs[id_key] != []:
             return None
+        
         return data
 
+    def http_handle(self, id_key, req):
+        replies = []
+        self.flask_sock.send(req)
+        while 1:
+            data = self.flask_sock.recv(self.bufsiz)
+            if not data:
+                break
+            replies.append(data)
+        self.flask_sock.close()
+        self.flask_sock = socket(AF_INET, SOCK_STREAM)
+        self.flask_sock.connect(('127.0.0.1', 5000))
+        if not replies:
+            return 'request - failed'
+        else:
+            """self.send_to_client(id_key, str(len(replies)), True)
+            for reply in replies:
+                self.send_to_client(id_key, reply)"""
+            self.send_to_client(id_key, ''.join(replies))
+            return 'request - succeeded'
+    
     def recieving_data(self):
 
-        messages = defaultdict(dict)
+        recieved_data_handle = self.http_handle if self.is_web_service else lambda _, data: data
+        
+        
         while True:
             data, addr = self.service_sock.recvfrom(60000) # buffer size is 1024 bytes
             dec_json = onion_encryption_decryption.decrypt_data_service(data, self.private_key)
@@ -127,33 +147,43 @@ class Service():
             }
             
             msg = json.loads(dec_json[seperator+1:])
-
-            if msg["serial_num"] != "End":
-                messages[id_key][msg["serial_num"]] = (msg)
+            #msg = eval(dec_json[seperator+1:])
+            if msg["sn"] != "End":
+                self.messages[id_key][msg["sn"]] = (msg)
             else:
-                client_details = self.connect_data(id_key, messages[id_key], int(msg["data"]))
-        
-                if not client_details:
+                client_details = self.connect_data(id_key, int(msg["d"]))
+                print client_details
+
+                if not client_details and self.sent_key[id_key]:
                     send_back_onion_packet.generate_packet(id_key, self.client_keys[id_key],\
                             self.back_id_dict[id_key]['ip'], self.back_id_dict[id_key]['port'],\
-                            str(self.clients_send_again_regs[id_key]))
+                            "!{SEND AGAIN}!")
                 else:
-                    if not self.sent_key[id_key]:
-                        client_details = client_details.split('%$%$')
-                        self.client_keys[id_key] = client_details[1]
-                        data = client_details[0]
-                        self.sent_key[id_key] = True
-                    else:
+                    if not self.sent_key[id_key] and client_details:
+                        self.client_keys[id_key] = client_details
+                        self.send_to_client(id_key, "[RECIEVED KEY]")
+
+                    elif client_details:
                         data = client_details
-                    del messages[id_key]
-                    yield id_key, data
+
+                    del self.messages[id_key]
+
+                    if self.sent_key[id_key]:
+                        yield id_key, recieved_data_handle(id_key, data)
+                    else:
+                        self.sent_key[id_key] = True
+                        yield id_key, "[RECIEVED KEY]"
     
-    def recieve_from_clients(self):            
+    def recieve_from_clients(self):
+        """
+        only for not web services!
+        """          
         for id_key, data in self.recieving_data():
             yield id_key,data
     
     
-    def send_to_client(self, id_key, data_to_send):
+    def send_to_client(self, id_key, data_to_send, is_web_header = False):
+        print '---generating back', data_to_send
         send_back_onion_packet.generate_packet(id_key, self.client_keys[id_key],\
-                        self.back_id_dict[id_key]['ip'], self.back_id_dict[id_key]['port'], (data_to_send))
+                        self.back_id_dict[id_key]['ip'], self.back_id_dict[id_key]['port'], (data_to_send), is_web_header)
 

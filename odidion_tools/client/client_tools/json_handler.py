@@ -23,6 +23,6 @@ def recieve_json(json_data):
 
 def create_service_json(data, serial_num):
     return json.dumps({
-        "serial_num" : serial_num,
-        "data" : data,
+        "sn" : serial_num,
+        "d" : data,
     })

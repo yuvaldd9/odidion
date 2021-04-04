@@ -1,4 +1,4 @@
-from service_tools import service as s 
+from .service_tools import Service as s 
 import json
 
 def handle_data(data):
@@ -10,7 +10,7 @@ def handle_data(data):
 with open(r"C:\Users\yuval\Desktop\odidion\odidion\odidion_tools\service\Files\service_data.txt", 'a') as f:
     f.write("CLIENTS MESSAGES\n")
 
-if s.bind_and_set_service('S0', '10.0.0.7', 50022):
+if s.bind_and_set_service('S0', "10.0.0.7", 50022):
     print 'binded'
     s.register_service()
     print 'registered'

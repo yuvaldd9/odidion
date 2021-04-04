@@ -1,46 +1,33 @@
-
 import os
-class verbose:
-    """
-    0 - Important - only the recieved data
-    1 - Updates about sessions and recieved data
-    2 - Everything"""
-    
-    VERBOSE_LEVEL = 0
 
-    #general codes
+
+class Verbose():
+    VERBOSE_CHANGES = 0
     CLIENTS = 1
-    REGISTER = 2
+    REGISTER = 1
     KEEP_ALIVE = 3
-    GENERAL_DATA = 4
-    ERRORS = 5
-    COMM_UPDATES = 6
+    GENERAL_DATA = 3
+    ERRORS = 0
+    COMM_UPDATES = 2
+    
+    verbose_level = 0
 
-    LOG_FILE_DIR = "%s\\%s"%(os.getcwd(), "log.txt")
+    def __init__(self, name):
+        self.name = name
+        self.log_file_dir = "%s\\%s"%(os.getcwd(), "%s_log.txt"%(name,))
+        
+        f = open(self.log_file_dir, 'w') 
+        f.close()
 
-    @staticmethod
-    def log(data):
-        if os.path.exists(verbose.LOG_FILE_DIR):
-            mode = 'a'
-        else:
-            mode = 'w'
-        with open(verbose.LOG_FILE_DIR,mode) as log_file:
-            log_file.write("%s\n\r"%(data,))
+    def print_data(self, data ,log_level): 
 
-    @staticmethod
-    def set_level(level):
-        verbose.VERBOSE_LEVEL = level
-        verbose.log("VERBOSE LEVEL CHANGED TO: %s"%(level,))
-    @staticmethod
-    def print_data(data, data_topic):
-        """
-        Checks For The Right Output"""
-        levels = {
-            0 : [verbose.COMM_UPDATES, verbose.REGISTER, verbose.ERRORS],
-            1 : [verbose.COMM_UPDATES, verbose.REGISTER, verbose.KEEP_ALIVE, verbose.ERRORS],
-            2 : [verbose.COMM_UPDATES, verbose.REGISTER, verbose.KEEP_ALIVE, verbose.GENERAL_DATA, verbose.ERRORS],
-            3 : [verbose.COMM_UPDATES, verbose.REGISTER, verbose.KEEP_ALIVE, verbose.GENERAL_DATA, verbose.CLIENTS, verbose.ERRORS]
-        }
-        verbose.log(data)
-        if data_topic in levels[verbose.VERBOSE_LEVEL]:
+        if log_level <= Verbose.verbose_level:
             print data
+
+        with open(self.log_file_dir, 'a') as log_file:
+            log_file.write("%s | %s | %s\n\r"%(self.name, log_level ,data))
+
+
+    def set_level(self, verbose_level):
+        Verbose.verbose_level = verbose_level
+        self.print_data(Verbose.VERBOSE_CHANGES, "VERBOSE LEVEL CHANGED TO: %s"%(verbose_level,))

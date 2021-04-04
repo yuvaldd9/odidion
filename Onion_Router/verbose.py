@@ -1,43 +1,45 @@
-class verbose:
-    """
-    0 - Important - only the recieved data
-    1 - Updates about sessions and recieved data
-    2 - Everything"""
-    
-    VERBOSE_LEVEL = 0
-    #general codes
-    RECIEVED_DATA = 0
-    PKTS_DATA = 1
-    SESSION_DATA = 2
-    GENERAL_DATA = 3
-    ERRORS = 4
-    LOG_FILE_DIR = "%s\\%s"%(os.getcwd(), "log.txt")
-    @staticmethod
-    def log(data):
-        if os.path.exists(verbose.LOG_FILE_DIR):
-            mode = 'a'
+import os
+
+
+class Verbose():
+    VERBOSE_CHANGES = 0
+    RECIEVED_DATA = 1
+    PKTS_DATA = 2
+    SESSION_DATA = 3
+    GENERAL_DATA = 4
+    ERRORS = 0
+    KEEP_ALIVE = 2
+    verbose_level = 0
+
+    def __init__(self, name = None):
+        self.name = name
+        if name:
+            self.log_file_dir = "%s\\%s"%(os.getcwd(), "%s_log.txt"%(self.name,))
+            self._create_log_file()
         else:
-            mode = 'w'
-        with open(verbose.LOG_FILE_DIR,mode) as log_file:
-            log_file.write("%s\n\r"%(data,))
+            self.log_file_dir = ''
+    def print_data(self, data ,log_level):        
 
-    @staticmethod
-    def set_level(level):
-        verbose.VERBOSE_LEVEL = level
-        verbose.log("VERBOSE LEVEL CHANGED TO: %s"%(level,))
-    @staticmethod
-    def print_data(data, data_topic):
-        """
-        Checks For The Right Output"""
-        levels = {
-            0 : [verbose.RECIEVED_DATA, verbose.ERRORS],
-            1 : [verbose.RECIEVED_DATA, verbose.SESSION_DATA, verbose.ERRORS],
-            2 : [verbose.RECIEVED_DATA, verbose.SESSION_DATA, verbose.PKTS_DATA, verbose.ERRORS],
-            3 : [verbose.RECIEVED_DATA, verbose.SESSION_DATA, verbose.PKTS_DATA, verbose.GENERAL_DATA, verbose.ERRORS]
-        }
-
-        verbose.log(data)
-        if data_topic in levels[verbose.VERBOSE_LEVEL]:
+        if log_level <= Verbose.verbose_level:
             print data
 
+        with open(self.log_file_dir, 'a') as log_file:
+            log_file.write("%s | %s | %s\n\r"%(self.name, log_level ,data))
 
+    def set_name(self, new_name):
+        """
+        this func should be called once!
+        """
+
+        self.name = new_name
+        self.log_file_dir = "%s\\%s"%(os.getcwd(), "%s_log.txt"%(self.name,))
+        self._create_log_file()
+
+    def _create_log_file(self):
+        if not os.path.isfile(self.log_file_dir):
+            f = open(self.log_file_dir, 'w') 
+            f.close()
+
+    def set_level(self, verbose_level):
+        Verbose.verbose_level = verbose_level
+        self.print_data(Verbose.VERBOSE_CHANGES, "VERBOSE LEVEL CHANGED TO: %s"%(verbose_level,))
