@@ -1,5 +1,7 @@
 import database_handler as db
 import onion_encryption_decryption 
+import keep_alive_handler
+
 from global_variables import *
 from json_codes import *
 
@@ -7,21 +9,17 @@ def get_service(service_name):
     """
     returns the service details(ip) and the relavent routers
     """
-    
-
-    service_details = db.get_data(SERVICES_DB_DIR, '''SELECT ren_ip, ren_name, communication_type, public_key_dir, serial_number from services WHERE service_name = \'%s\''''%service_name)[0]
-
-    service_data = {'serial_number':service_details[4]}
-    service_public_key = onion_encryption_decryption.get_public_key(service_details[3])
-    if not service_public_key:
-          return (CLIENT_REQ, STATE_SEND_AGAIN)
-    service_data["service_public_key"] = service_public_key.encode('utf-8')
-    service_data["communication_type"] = service_details[2]
-    service_data["routers"] = choose_routers(service_details[1])
-    
-    VB.print_data("Sent Details About %s"%(service_name,), VB.CLIENTS)
-
-    return (CLIENT_REQ, STATE_SUCCEED, service_data)
+    service_details = db.get_data(SERVICES_DB_DIR, '''SELECT ren_ip, ren_name, special_key, public_key_dir, serial_number from services WHERE service_name = \'%s\''''%service_name)[0]
+    try:
+        service_data = {'serial_number':service_details[4]}
+        service_public_key = onion_encryption_decryption.get_public_key(service_details[3])
+        service_data["service_public_key"] = service_public_key.encode('utf-8')
+        service_data["communication_type"] = 0
+        service_data["routers"] = choose_routers(service_details[1]) 
+        VB.print_data("Sent Details About %s"%(service_name,), VB.CLIENTS)
+        return (CLIENT_REQ, STATE_SUCCEED, service_data)
+    except:
+        return (CLIENT_REQ, STATE_FAILED)
 
 def choose_routers(ren_name):
     """
@@ -29,8 +27,9 @@ def choose_routers(ren_name):
     return an array of the objects.
     """
 
-    routers = db.get_data(ONION_ROUTERS_DB_DIR, '''SELECT router_name, ip, port, load, public_key_dir from onion_routers''')
+    routers = db.get_data(ONION_ROUTERS_DB_DIR, '''SELECT router_name, ip, port, load, public_key_dir, last_seen from onion_routers''')
     
+    routers = keep_alive_handler.check_avaiable_routers(routers)
 
     clients_routers = {'3' : filter(lambda details: details[0] == ren_name, routers)[0]}
     routers.remove(clients_routers['3'])

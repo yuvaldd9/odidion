@@ -8,25 +8,26 @@ if sys.stdout != sys.__stdout__:
 
 scapy_sock = conf.L3socket()
 
-def divide_data(data, is_web_header):
-    json_generator = json_handler.web_header_json if is_web_header else json_handler.create_reply_json 
-    print json_handler
+def divide_data(data):
+    json_generator = json_handler.create_reply_json  #json_handler.web_header_json if is_web_header else 
     len_of_data = int(128*1.5)
     repeat_times = len(data)/len_of_data
     data_parts = []
+    is_trail = 0
+
     for i in xrange(repeat_times):
         data_parts.append(json_generator(data[i*len_of_data:(i+1)*len_of_data], i))
     if data[(repeat_times)*len_of_data:]:
+        is_trail = 1
         data_parts.append(json_generator(data[(repeat_times)*len_of_data:], repeat_times))
-    if not is_web_header:
-        data_parts.append(json_handler.create_reply_json(repeat_times+1, 'End'))
+    data_parts.append(json_handler.create_reply_json(repeat_times + is_trail, 'End'))
 
     return data_parts
 
-def generate_packet(id_key, client_public_key, back_ip, back_port, data, is_web_header):
+def generate_packet(id_key, client_public_key, back_ip, back_port, data):
     if not data:
         data = 'DATA RECIEVED'
-    messages = divide_data(data, is_web_header)
+    messages = divide_data(data)
     sym_key = onion_encryption_decryption.generate_sym_key()
     for data in messages:
         msg = id_key+':'+ onion_encryption_decryption.RSA_Encryption(sym_key, client_public_key) \

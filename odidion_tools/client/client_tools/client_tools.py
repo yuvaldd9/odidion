@@ -12,7 +12,10 @@ import onion_encryption_decryption
 import onion_packet_handler
 
 from scapy.all import *
- 
+
+class ClientErrors(Exception):
+    pass
+
 class Client():
     def __init__(self, client_name, is_web_client=False):
         self._running = threading.Event()
@@ -27,12 +30,13 @@ class Client():
         self.first_time = True
 
         #client details
-        self.udp_ip = "10.0.0.7"#'192.168.1.22' #'192.168.43.207' #"10.0.0.7"
+        self.udp_ip = "192.168.1.26"#'192.168.1.22' #'192.168.43.207' #"192.168.1.26"
         self.udp_port = 50102
+        self.sniff_filter = "udp port %s"%(self.udp_port, ) 
         self.udp_addr = (self.udp_ip, self.udp_port)
         
         #directory server socket details
-        self.dir_server_ip =  "10.0.0.7"#'192.168.0.100'#'192.168.1.22' #'192.168.43.207' #"10.0.0.7"
+        self.dir_server_ip =  "192.168.1.26"#'192.168.0.100'#'192.168.1.22' #'192.168.43.207' #"192.168.1.26"
         self.dir_server_port = 50010
         self.bufsiz = 4096
         self.dir_server_addr = (self.dir_server_ip, self.dir_server_port)    
@@ -40,8 +44,8 @@ class Client():
         self.server_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server_sock.connect(self.dir_server_addr)
 
-        self.public_key, self.public_key  =  onion_encryption_decryption.generate_keys((os.getcwd()), self.client_name)
-        self.id_key = hashlib.md5(self.public_key).digest()
+        self.public_key, self.private_key  =  onion_encryption_decryption.generate_keys((os.getcwd()), self.client_name)
+        self.id_key = hashlib.md5(self.private_key).digest()
 
         self.is_web_client = is_web_client
 
@@ -59,7 +63,6 @@ class Client():
         print '----handle web----'
         while 1:
             sock, addr = self.reqs_sock.accept()
-            print sock, addr
             
             thread.start_new_thread(self.convertor_thread, (sock,))        
         self._running.clear()
@@ -77,13 +80,10 @@ class Client():
 
     def convertor_reciever(self, sock):
         #self.sent_key_semaphore.acquire()
-        print sock
         for data in self.manage_communication():
             #data += r'\r\n\r\n'
             try:
                 sock.send(data)
-                print 'send to browser'
-                print data
                 self.data_from_service = ''
             except:
                 self.data_from_service = ''
@@ -93,52 +93,33 @@ class Client():
         
         udp_data = onion_pkt[UDP].payload.build()
 
-        if onion_pkt[0][2].dport == self.udp_port:
+        try:
 
             seperator_index = udp_data.index(':')
             
             key_comm_header = udp_data[seperator_index + 1 : seperator_index + onion_encryption_decryption.KEYS_LEN + 1]
-            dec_sym_key = onion_encryption_decryption.RSA_Decryption(key_comm_header,self.public_key)
+            dec_sym_key = onion_encryption_decryption.RSA_Decryption(key_comm_header,self.private_key)
             encrypted_pkt = bytes(udp_data[seperator_index + onion_encryption_decryption.KEYS_LEN + 1:])
 
             recv_data = json_handler.recieve_json(onion_encryption_decryption.sym_decryption(encrypted_pkt,dec_sym_key))
-            print 'data' , recv_data
-            """if recv_data["serial_num"] == 'WEB REPLIES':
-                
-                self.counter_waiting_data = int(recv_data['data'])"""
+
             if recv_data["serial_num"] != 'End':
                 self.splitted_data[recv_data["serial_num"]] = (recv_data["data"])
-                print 'adeeded'
             else:
-                print 'endddd'
                 self.splitted_data[recv_data["serial_num"]] = int(recv_data["data"])
                 return self.connect_data()
-                """reply = self.connect_data()
-                print reply
-                if reply == "!{SEND AGAIN}!":
-                    self.data_from_service = reply
-                    return True
-                
-                self.data_from_service.append(reply)
-                
-                self.splitted_data = {}
-
-                if self.counter_waiting_data == 0:
-                    return True
-                elif self.counter_waiting_data > 0:
-                    self.counter_waiting_data -= 1"""
 
             if time.time() > self.timeout:
                 self.data_from_service = None
                 return True
-        
-        return False
+        except:
+            self.data_from_service = None
+            return True
             
     def connect_data(self):
         reply = ""
         for i in xrange(self.splitted_data['End']):
             self.data_from_service += (self.splitted_data[i])
-            reply += (self.splitted_data[i])
         self.splitted_data = {}
         return True
 
@@ -163,7 +144,6 @@ class Client():
         self.data_to_send.append(data)
 
     def send_req(self, method):
-        print method
         req = requests.get('http://localhost:51000/')
         return req
   
@@ -202,7 +182,7 @@ class Client():
             while not recieved_msg:
                 self.send_packets(data_parts)
                 self.timeout = time.time() + 120
-                sniff(filter = "udp", stop_filter = self._handle_packet)            
+                sniff(filter = self.sniff_filter, stop_filter = self._handle_packet)            
                 print '-hoiii----'
                 if not self.data_from_service:
                     print 'wtfffff'
@@ -215,12 +195,8 @@ class Client():
     
 
     def _divide_data(self, data):
-        """if self.first_time:
-            data = data +"%$%$" + self.public_key #r"%s"%(data,) +"%$%$" + self.public_key
-            self.first_time = False
-        #data = raw(data)"""
         
-        len_of_data = 17
+        len_of_data = 9
         repeat_times = len(data)/len_of_data
         data_parts = []
         trail_counter = 0 
@@ -233,7 +209,7 @@ class Client():
             trail_counter = 1
         
         data_parts.append(json_handler.create_service_json(repeat_times + trail_counter, 'End'))
-        print data_parts
+        
         return data_parts
 
     def ask_to_service(self, onion_url):
@@ -242,7 +218,7 @@ class Client():
             self.server_sock.send(json_handler.create_json(onion_url))
             data = json_handler.recieve_json(self.server_sock.recv(self.bufsiz))   
             if data["state"] == json_handler.STATE_FAILED: 
-                print 'Check your url'
+                raise ClientErrors('Check your url')
                 break
             elif data["state"] == json_handler.STATE_SEND_AGAIN:
                 self.server_sock.send(json_handler.create_json(onion_url))
@@ -274,7 +250,7 @@ class Client():
         for attempt in xrange(3):
             self.send_packets(data_parts)
             self.timeout = time.time() + 120
-            sniff(filter = "udp", stop_filter = self._handle_packet) 
+            sniff(filter = self.sniff_filter, stop_filter = self._handle_packet) 
             if not self.data_from_service:
                 print 'key was not recieved'
             elif self.data_from_service == "[RECIEVED KEY]":

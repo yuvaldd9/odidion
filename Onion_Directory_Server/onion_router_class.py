@@ -16,13 +16,13 @@ class onion_router:
         self.public_key_dir = router_details["public_key_dir"]
         self.is_exist_in_database = False
         if self.is_exist_in_database:
-            self.service = (db.get_data(onion_router.db_dir,"SELECT service_str from onion_routers WHERE router_name = %s"%(self.router_name,)))
+            self.services = (db.get_data(onion_router.db_dir,"SELECT service_str from onion_routers WHERE router_name = %s"%(self.router_name,)))
             #print 'updating data for %s router'%(self.router_name,)
             VB.print_data(db.set_data(onion_router.db_dir, '''UPDATE onion_routers SET ip = \'%s\', port = \'%s\', is_available = \'%s\', last_seen = \'%s\', service_str =  \'%s\'\
                                         WHERE router_name = \'%s\''''%(self.ip, self.port, int(self.is_available),self.last_seen, self.router_name, self.services_to_str(self.services))), VB.GENERAL_DATA)
         else:
             #print 'new router added to the database'
-            self.services = None
+            self.services = {}
             VB.print_data(db.set_data(onion_router.db_dir, '''INSERT INTO onion_routers(router_name, ip, port, load, is_available,last_seen,public_key_dir, service_str)\
                                     VALUES(?,?,?,?,?,?,?,?)''', args = (self.router_name, self.ip, self.port, self.load, int(self.is_available), str(self.last_seen), self.public_key_dir ,self.services_to_str(self.services))), VB.GENERAL_DATA)
             
@@ -42,7 +42,8 @@ class onion_router:
         return self.load   
     def refresh_last_seen(self, load):
         self.last_seen = time.time()
-        return db.set_data(onion_router.db_dir, str('''UPDATE onion_routers SET last_seen = \'%s\', load = \'%s\' WHERE router_name = \'%s\' '''%( str(self.last_seen), load,self.router_name)))
+        self.load = load
+        return db.set_data(onion_router.db_dir, str('''UPDATE onion_routers SET last_seen = \'%s\', load = \'%s\' WHERE router_name = \'%s\' '''%( str(self.last_seen), self.load, self.router_name)))
     def get_router_data(self):
         return {
             "router name" : self.router_name,
@@ -52,11 +53,11 @@ class onion_router:
         }
     def close_router(self):
         self.is_available = 0
-        return db.set_data(onion_router.db_dir, str('''UPDATE onion_routers SET last_seen = \'%s\', is_available = '0' WHERE router_name = \'%s\' '''%( str(self.last_seen), self.router_name)))
+        return db.set_data(ONION_ROUTERS_DB_DIR, '''UPDATE onion_routers SET is_available = '0', load = '0' WHERE router_name =\'%s\''''%(self.router_name, ))
     def get_ip(self):
         return self.ip
     def add_service(self, service_details):
-        self.services.append(service_details)
+        self.services[service_details["service_name"]] = (service_details)
         db.set_data(onion_router.db_dir, "UPDATE onion_routers SET service_str = \'%s'\ WHERE router_name = \'%s\'"%(self.services_to_str(services), self.router_name))       
     def services_to_str(self,services):
         """

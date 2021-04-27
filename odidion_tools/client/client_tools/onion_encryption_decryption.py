@@ -35,12 +35,12 @@ def generate_keys(MAIN_DIR, name):
         public_key_file.close()
         
         private_key_file = open((PRIVATE_KEY_DIR),'wb')
-        private_key_file.write(PUBLIC_KEY)
+        private_key_file.write(PRIVATE_KEY)
         private_key_file.close()
         
 
 
-    return (keyPair.publickey().export_key(), keyPair.export_key())
+    return (PUBLIC_KEY, PRIVATE_KEY)
 
 def RSA_Decryption(hex_pkt, PRIVATE_KEY):
     """

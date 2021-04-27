@@ -18,7 +18,8 @@ class Verbose():
         
         f = open(self.log_file_dir, 'w') 
         f.close()
-
+    def get_log_dir(self):
+        return self.log_file_dir
     def print_data(self, data ,log_level): 
 
         if log_level <= Verbose.verbose_level:

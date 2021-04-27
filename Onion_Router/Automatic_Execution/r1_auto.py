@@ -1,6 +1,6 @@
 import os
 
-cmd = 'C:\Users\yuval\Desktop\odidion\odidion\Onion_Router\onion_router.py %s %s %s'%('r1', '50001', '0')
+cmd = 'py -2 C:\Users\yuval\Desktop\odidion\odidion\Onion_Router\onion_router.py %s %s %s'%('r1', '50001', '0')
 os_cmd = 'cmd /k \"%s\"'%(cmd,)
 
 os.chdir("C:\Users\yuval\Desktop\odidion\odidion\Onion_Router")
