@@ -1,4 +1,3 @@
-from scapy.all import *
 import socket
 import thread
 import sys , os
@@ -9,6 +8,8 @@ import json_handler
 import json
 import re
 import global_variables
+
+from scapy.all import *
 
 def create_databases():
     """
@@ -43,6 +44,7 @@ def connect_to_network(server_sock):
         if data["state"] == json_handler.STATE_SUCCEED:
             return True
         elif data["state"] == json_handler.STATE_FAILED:
+            print data
             return False
         else:
             server_sock.send(connect_req)
@@ -57,8 +59,13 @@ def add_service(service_details):
         global_variables.VB.print_data("SERVICE UPLOADED SUCCESSFULLY", global_variables.VB.GENERAL_DATA)
         global_variables.SERVICES[global_variables.SERIAL_NUM_SERVICES] = (service_details)
         global_variables.LOAD_LEVEL += 1
+        
         return global_variables.SERIAL_NUM_SERVICES
     return False
+def delete_service(service_details):
+    global_variables.VB.print_data("SERVICE DELETED SUCCESSFULLY", 0)
+    global_variables.LOAD_LEVEL -= 1
+    return str(db.set_data(global_variables.SERVICES_DB_DIR,'''DELETE FROM services WHERE service_name = \'%s\''''%(service_details["service_name"])))
 def handle_keep_alive(server_sock):
     """
     handle the keep alive connection between the server
@@ -73,6 +80,7 @@ def handle_keep_alive(server_sock):
 
             msg = json_handler.create_json(json_handler.ONION_ROUTER_KEEP_ALIVE, keep_alive_details)
             global_variables.VB.print_data(msg, global_variables.VB.KEEP_ALIVE)
+            print msg
             server_sock.send(msg)
             d = server_sock.recv(global_variables.BUFSIZ)
 
@@ -80,17 +88,23 @@ def handle_keep_alive(server_sock):
             
 
             global_variables.VB.print_data("RECIEVED KEEP ALIVE MSG", global_variables.VB.KEEP_ALIVE)
-
+            print data
             if not data:
                 break
             elif "new_service" in data["args"].keys():
                 keep_alive_details["service_added"] = (add_service(data["args"]["new_service"]))#need to create handle for errors.
+                keep_alive_details["load"] = global_variables.LOAD_LEVEL
                 global_variables.SERIAL_NUM_SERVICES += 1
+            elif "delete_service" in data["args"].keys():
+                keep_alive_details["service_deleted"] = delete_service(data["args"]["delete_service"])
+                keep_alive_details["load"] = global_variables.LOAD_LEVEL
             else:
                 if "service_added" in keep_alive_details.keys():
                     del keep_alive_details["service_added"]
+                if "service_deleted" in keep_alive_details.keys():
+                     del keep_alive_details["service_deleted"]
 
-            time.sleep(5)
+            time.sleep(4)
         except Exception as e:
             global_variables.VB.print_data(e, global_variables.VB.ERRORS)
             break
@@ -110,52 +124,53 @@ def send_to_service(data, src, sport):
     
     
 def handle_packet(onion_pkt):
-    
     seperator = ':'
     try:
-        if onion_pkt[0][2].dport == global_variables.CLIENTS_PORT:
-            udp_data = onion_pkt[UDP].payload.build()
-        
-            pkt_purpose = onion_pkt[0][IP].tos
-            if pkt_purpose == 0:
-                
-                global_variables.VB.print_data('----RECIEVED PACKET TO NEXT NODE----', global_variables.VB.PKTS_DATA)
-                
-                seperator_index = udp_data.index(seperator)
-                id_key = udp_data[:seperator_index]
-                key_comm_header = udp_data[seperator_index+1:seperator_index +1+ onion_encryption_decryption.KEYS_LEN]
-                dec_sym_key = onion_encryption_decryption.RSA_Decryption(key_comm_header,PRIVATE_KEY)[:-1]# the slicing may change because the len analyzing(in the future)
-                comm_type = dec_sym_key[len(dec_sym_key)-1:] #for the comm handler(after the poc)
-                
-                encrypted_pkt = bytes(udp_data[seperator_index +1+ onion_encryption_decryption.KEYS_LEN:])
-                
-                next_pkt = IP(onion_encryption_decryption.sym_decryption(encrypted_pkt,dec_sym_key))
-
+        udp_data = onion_pkt[UDP].payload.build()
+    
+        pkt_purpose = onion_pkt[0][IP].tos
+        if pkt_purpose == 0:
             
-                global_variables.ROUTING_PROCESSES[id_key] = {
-                    'ip' : onion_pkt[0][IP].src,
-                    'port' : onion_pkt[0][UDP].sport
-                }
-                scapy_sock.send(next_pkt)
+            global_variables.VB.print_data('----RECIEVED PACKET TO NEXT NODE----', global_variables.VB.PKTS_DATA)
+            
+            seperator_index = udp_data.index(seperator)
+            id_key = udp_data[:seperator_index]
+            key_comm_header = udp_data[seperator_index+1:seperator_index +1+ onion_encryption_decryption.KEYS_LEN]
+            dec_sym_key = onion_encryption_decryption.RSA_Decryption(key_comm_header,PRIVATE_KEY)[:-1]# the slicing may change because the len analyzing(in the future)
+            comm_type = dec_sym_key[len(dec_sym_key)-1:] #for the comm handler(after the poc)
+            
+            encrypted_pkt = bytes(udp_data[seperator_index +1+ onion_encryption_decryption.KEYS_LEN:])
+            
+            next_pkt = IP(onion_encryption_decryption.sym_decryption(encrypted_pkt,dec_sym_key))
 
-                #except Exception as e:
-            elif pkt_purpose == 1:
-                global_variables.VB.print_data('----RECIEVED PACKET TO SERVICE----', global_variables.VB.PKTS_DATA)
-                
-                encrypted_data = bytes(udp_data[onion_encryption_decryption.KEYS_LEN:])
-                send_to_service(udp_data, onion_pkt[0][1].src, onion_pkt[0][1].sport)
-            elif pkt_purpose == 2:
-                global_variables.VB.print_data('----RECIEVED PACKET TO CLIENT----', global_variables.VB.PKTS_DATA)
-                
-                seperator_index = udp_data.index(seperator)
-                id_key = udp_data[:seperator_index]
-                
-                client_data = bytes(udp_data[seperator_index +1:])
-                
-                next_pkt = IP(dst = global_variables.ROUTING_PROCESSES[id_key]['ip'], tos = 2)\
-                                /UDP(dport = global_variables.ROUTING_PROCESSES[id_key]['port'])/Raw(load = id_key + ':' + client_data)
+        
+            global_variables.ROUTING_PROCESSES[id_key] = {
+                'ip' : onion_pkt[0][IP].src,
+                'port' : onion_pkt[0][UDP].sport
+            }
+            scapy_sock.send(next_pkt)
 
-                scapy_sock.send(next_pkt)
+
+            #except Exception as e:
+        elif pkt_purpose == 1:
+            global_variables.VB.print_data('----RECIEVED PACKET TO SERVICE----', global_variables.VB.PKTS_DATA)
+            
+            encrypted_data = bytes(udp_data[onion_encryption_decryption.KEYS_LEN:])
+            send_to_service(udp_data, onion_pkt[0][1].src, onion_pkt[0][1].sport)
+        
+        elif pkt_purpose == 2:
+            global_variables.VB.print_data('----RECIEVED PACKET TO CLIENT----', global_variables.VB.PKTS_DATA)
+            
+            seperator_index = udp_data.index(seperator)
+            id_key = udp_data[:seperator_index]
+
+            client_data = bytes(udp_data[seperator_index +1:])
+            
+            next_pkt = IP(dst = global_variables.ROUTING_PROCESSES[id_key]['ip'], tos = 2)\
+                            /UDP(sport= global_variables.CLIENTS_PORT ,dport = global_variables.ROUTING_PROCESSES[id_key]['port'])\
+                            /Raw(load = udp_data)#id_key + ':' + client_data)
+
+            scapy_sock.send(next_pkt)
             
     except:
         pass
@@ -194,8 +209,9 @@ if create_databases():
 if connect_to_network(server_sock):#"blocking - handle the handshake"
     thread.start_new_thread(handle_keep_alive,(server_sock,))
     while 1:
-        sniff(filter = "udp", prn = handle_packet , count = 0)
+        sniff(filter = "udp dst port %s"%(global_variables.CLIENTS_PORT), prn = handle_packet , count = 0)
 else:
-    server_sock.close()
     global_variables.VB.print_data('[failed to connect the server]', global_variables.VB.ERRORS)
+    server_sock.close()
+    
 #server - router - communication - END

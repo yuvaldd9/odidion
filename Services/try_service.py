@@ -13,7 +13,7 @@ def handle_data(data):
     print type(a)
     return a
 s = Service()
-if s.bind_and_set_service('S1', "10.0.0.7", 50021):
+if s.bind_and_set_service('S1',"10.0.0.10", 50021):
     print 'binded'
     s.register_service()
     print 'registered'

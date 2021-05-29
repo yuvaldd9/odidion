@@ -74,3 +74,19 @@ def set_data(db_dir, command, args = None):
         #except:
             return False
     return False
+
+def check_if_value_exist(db_dir, table_name,row, value):
+    print '------------CHECKIG EXISTECE_______'
+    #try:
+    cmd = """SELECT %s FROM %s  WHERE %s = \'%s\'"""%(row, table_name, row, value)
+    print cmd
+    with lite.connect((db_dir)) as conn:
+        cursor = conn.cursor()
+        cursor.execute(cmd)
+        result = cursor.fetchone()
+        print result
+        if result:
+            return True
+        return False
+    #except:    
+    #    return False

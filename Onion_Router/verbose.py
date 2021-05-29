@@ -1,5 +1,5 @@
 import os
-
+import time
 
 class Verbose():
     VERBOSE_CHANGES = 0
@@ -8,7 +8,7 @@ class Verbose():
     SESSION_DATA = 3
     GENERAL_DATA = 4
     ERRORS = 0
-    KEEP_ALIVE = 2
+    KEEP_ALIVE = 0
     verbose_level = 0
 
     def __init__(self, name = None):
@@ -19,12 +19,12 @@ class Verbose():
         else:
             self.log_file_dir = ''
     def print_data(self, data ,log_level):        
-
-        if log_level <= Verbose.verbose_level:
+        pass
+        """if log_level <= Verbose.verbose_level:
             print data
 
         with open(self.log_file_dir, 'a') as log_file:
-            log_file.write("%s | %s | %s\n\r"%(self.name, log_level ,data))
+            log_file.write("%s | %s | %s | %s\n\r"%(time.asctime(), self.name, log_level ,data))"""
 
     def set_name(self, new_name):
         """

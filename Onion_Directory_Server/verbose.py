@@ -1,5 +1,5 @@
 import os
-
+import time
 
 class Verbose():
     VERBOSE_CHANGES = 0
@@ -18,14 +18,15 @@ class Verbose():
         
         f = open(self.log_file_dir, 'w') 
         f.close()
-
+    def get_log_dir(self):
+        return self.log_file_dir
     def print_data(self, data ,log_level): 
 
         if log_level <= Verbose.verbose_level:
             print data
 
         with open(self.log_file_dir, 'a') as log_file:
-            log_file.write("%s | %s | %s\n\r"%(self.name, log_level ,data))
+            log_file.write("%s | %s | %s | %s\n\r"%(time.asctime(), self.name, log_level ,data))
 
 
     def set_level(self, verbose_level):

@@ -8,15 +8,10 @@ import sys , os
 if sys.stdout != sys.__stdout__:
     sys.stdout = sys.__stdout__
 
-KEYS_LEN = 192#256#384
-def generate_keys(MAIN_DIR, name):
-    """
-    create/ load the keys of the router
+KEYS_LEN = 192
 
-    returns (PUBLIC_KEY, PRIVATE_KEY, keyPair)
-    """
-    
-     
+def generate_keys(MAIN_DIR, name):
+
     PRIVATE_KEY_DIR = "%s\keys\%s_private_key_%s.pem"%(MAIN_DIR,name,"PRIVATE_KEY",)
     PUBLIC_KEY_DIR = "%s\keys\%s_public_key_%s.pem"%(MAIN_DIR,name,"PUBLIC_KEY",)
     
@@ -24,7 +19,7 @@ def generate_keys(MAIN_DIR, name):
         PRIVATE_KEY = RSA.importKey(open(repr(PRIVATE_KEY_DIR) , 'rb')).export_key()
         PUBLIC_KEY = RSA.importKey(open(repr(PUBLIC_KEY_DIR), 'rb')).export_key()
     else:
-        keyPair = RSA.generate(256*6)
+        keyPair = RSA.generate(1024)
 
         PUBLIC_KEY = keyPair.publickey().export_key()
         PRIVATE_KEY = keyPair.exportKey()
@@ -36,28 +31,20 @@ def generate_keys(MAIN_DIR, name):
         private_key_file = open((PRIVATE_KEY_DIR),'wb')
         private_key_file.write(PUBLIC_KEY)
         private_key_file.close()
-        
-
 
     return (keyPair.publickey().export_key(), keyPair.export_key())
 
-def RSA_Decryption(hex_pkt, PRIVATE_KEY):
-    """
-    get the encrypted part of the packet and decrypt it.
-    """
-    decryptor = PKCS1_OAEP.new(str_to_RSAKey(PRIVATE_KEY))
+def RSA_Decryption(hex_pkt, public_key):
+    decryptor = PKCS1_OAEP.new(str_to_RSAKey(public_key))
     decrypted_Packet = decryptor.decrypt((hex_pkt))
 
     return decrypted_Packet
-def RSA_Encryption(data, public_key):
-    """
-    returns the encrypted data according to the public key
-    """
-    
-    pubKey = str_to_RSAKey(public_key)
+def RSA_Encryption(data, private_key):
+    pubKey = str_to_RSAKey(private_key)
     encryptor = PKCS1_OAEP.new(pubKey)
     encrypted = encryptor.encrypt(data)
     return encrypted
+
 def sym_decryption(data, sym_key):
     f1 = Fernet(sym_key)
     return (f1.decrypt(data))
@@ -66,19 +53,13 @@ def sym_encryption(data, sym_key):
     f1 = Fernet(sym_key)
     return f1.encrypt((data))
 
-#Encryption Decryption - START
 def generate_sym_key():
-    """
-    returns the sym-key - FERNET - str length = 44
-    """
     return Fernet.generate_key()
+
 def str_to_RSAKey(key_str):
     return RSA.importKey(key_str)
+
 def save_pukey(name, public_key):
-    """
-    SAVES THe public key to .pem file
-    """
-    
     pukey_dir = "%s\keys\%s.pem"%(os.getcwd(), name)
     try:
         public_key_file = open((pukey_dir),'wb')

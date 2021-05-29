@@ -8,7 +8,7 @@ import sys , os
 if sys.stdout != sys.__stdout__:
     sys.stdout = sys.__stdout__
 
-KEYS_LEN = 192#256#384
+KEYS_LEN = 128#192#256#384
 
 def generate_keys(MAIN_DIR, name):
     """
@@ -20,12 +20,11 @@ def generate_keys(MAIN_DIR, name):
      
     PRIVATE_KEY_DIR = "%s\keys\%s_private_key_%s.pem"%(MAIN_DIR,name,"PRIVATE_KEY",)
     PUBLIC_KEY_DIR = "%s\keys\%s_public_key_%s.pem"%(MAIN_DIR,name,"PUBLIC_KEY",)
-    print PUBLIC_KEY_DIR
     if os.path.exists(repr(PRIVATE_KEY_DIR)) and os.path.exists(PUBLIC_KEY_DIR):
         PRIVATE_KEY = RSA.importKey(open(repr(PRIVATE_KEY_DIR) , 'rb')).export_key()
         PUBLIC_KEY = RSA.importKey(open(repr(PUBLIC_KEY_DIR), 'rb')).export_key()
     else:
-        keyPair = RSA.generate(256*6)
+        keyPair = RSA.generate(1024)
 
         PUBLIC_KEY = keyPair.publickey().export_key()
         PRIVATE_KEY = keyPair.exportKey()
@@ -35,12 +34,12 @@ def generate_keys(MAIN_DIR, name):
         public_key_file.close()
         
         private_key_file = open((PRIVATE_KEY_DIR),'wb')
-        private_key_file.write(PUBLIC_KEY)
+        private_key_file.write(PRIVATE_KEY)
         private_key_file.close()
         
 
 
-    return (keyPair.publickey().export_key(), keyPair.export_key())
+    return (PUBLIC_KEY, PRIVATE_KEY)
 
 def RSA_Decryption(hex_pkt, PRIVATE_KEY):
     """
@@ -55,7 +54,6 @@ def RSA_Encryption(data, public_key):
     """
     returns the encrypted data according to the public key
     """
-    
     pubKey = str_to_RSAKey(public_key)
     encryptor = PKCS1_OAEP.new(pubKey)
     encrypted = encryptor.encrypt(data)

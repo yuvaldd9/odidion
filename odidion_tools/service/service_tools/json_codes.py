@@ -10,6 +10,7 @@ ONION_ROUTER_REGISTER = "register"
 ONION_ROUTER_KEEP_ALIVE = "keep_alive"
 
 SERVICE_REGISTER = "register"
+SERVICE_DISCONNECT = "disconnect"
 
 #response_states
 STATE_SEND_AGAIN = "send_again"

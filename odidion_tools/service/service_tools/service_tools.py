@@ -1,7 +1,7 @@
 import thread
 import os
 import json
-import pickle
+import hashlib
 
 import onion_encryption_decryption 
 import send_back_onion_packet
@@ -18,7 +18,7 @@ class Service():
         self.udp_port = None
         self.bufsiz = None
 
-        self.dir_server_ip = "10.0.0.7"
+        self.dir_server_ip ="10.0.0.10"
         self.dir_server_port = 50010 
         self.dir_server_addr = (self.dir_server_ip, self.dir_server_port)
 
@@ -29,6 +29,7 @@ class Service():
 
         self.public_key = None
         self.private_key = None
+        self.special_key = None
         self.service_name = None
 
         self.back_id_dict = {}
@@ -38,7 +39,7 @@ class Service():
         
         self.messages = defaultdict(dict)
         if web_path:
-
+            web_path = "py -2 " + web_path
             thread.start_new_thread(os.system,(web_path,))
             
             self.is_web_service = True
@@ -55,6 +56,7 @@ class Service():
             self.bufsiz = bufsiz
             self.service_name = service_name
             self.public_key, self.private_key  =  onion_encryption_decryption.generate_keys((os.getcwd()), self.service_name)
+            self.special_key = hashlib.md5(self.private_key).hexdigest()
             self.service_sock.bind((ip, port))
     
             return True
@@ -67,18 +69,24 @@ class Service():
         handle the first communication with the dir_server
         comm_type: - 0-UDP 1-TCp
         """
+
+        def error_handle(recv_data):
+            print recv_data
+            return False
+
         service_details = {
             "service_name" : self.service_name,
             "ip" : self.udp_ip,
             "port" : self.udp_port,
             "communication_type" : 0,#only udp yet
-            "public_key" : self.public_key
+            "public_key" : self.public_key,
+            "special_key" : self.special_key
         }
-
+        print service_details
         state_handler = {
-            json_handler.STATE_SUCCEED: True,
+            json_handler.STATE_SUCCEED: lambda recv_data: True,
             json_handler.STATE_SEND_AGAIN: lambda sock,register_json: self.dir_server_socket.send(register_json),
-            json_handler.STATE_FAILED: False
+            json_handler.STATE_FAILED: lambda recv_data: error_handle(recv_data)
         }
         register_json = json_handler.create_json(json_handler.SERVICE_REGISTER,service_details)
         self.dir_server_socket.send(register_json)
@@ -88,8 +96,7 @@ class Service():
             if not data:
                 return False
             elif data["state"] != json_handler.STATE_SEND_AGAIN:
-                self.dir_server_socket.close()
-                return state_handler[data["state"]]
+                return state_handler[data["state"]](data['args'])
             state_handler[data["state"]](self.dir_server_socket, register_json)
         
 
@@ -124,9 +131,6 @@ class Service():
         if not replies:
             return 'request - failed'
         else:
-            """self.send_to_client(id_key, str(len(replies)), True)
-            for reply in replies:
-                self.send_to_client(id_key, reply)"""
             self.send_to_client(id_key, ''.join(replies))
             return 'request - succeeded'
     
@@ -147,6 +151,7 @@ class Service():
             }
             
             msg = json.loads(dec_json[seperator+1:])
+            print msg
             #msg = eval(dec_json[seperator+1:])
             if msg["sn"] != "End":
                 self.messages[id_key][msg["sn"]] = (msg)
@@ -182,8 +187,29 @@ class Service():
             yield id_key,data
     
     
-    def send_to_client(self, id_key, data_to_send, is_web_header = False):
+    def send_to_client(self, id_key, data_to_send):
         print '---generating back', data_to_send
         send_back_onion_packet.generate_packet(id_key, self.client_keys[id_key],\
-                        self.back_id_dict[id_key]['ip'], self.back_id_dict[id_key]['port'], (data_to_send), is_web_header)
+                        self.back_id_dict[id_key]['ip'], self.back_id_dict[id_key]['port'], (data_to_send))
 
+
+    def disconnect_network(self):
+        details = {
+            "special_key" : self.special_key,
+            "service_name" : self.service_name
+        }
+        
+        disconnect_json = json_handler.create_json(json_handler.SERVICE_DISCONNECT,details)
+        self.dir_server_socket.send(disconnect_json)
+        while 1:
+            data = json_handler.recieve_json(self.dir_server_socket.recv(self.bufsiz))
+            if not data:
+                self.dir_server_socket.close()
+                break
+            elif data["state"] != json_handler.STATE_SEND_AGAIN:
+                self.dir_server_socket.close()
+                return True
+            else:
+                self.dir_server_socket.send(disconnect_json)
+
+        return False

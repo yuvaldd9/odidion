@@ -25,7 +25,7 @@ def create_onion_packet(routers, service_public_key, communication_type, action,
     -forward to another node - 0
     -forward to service - 1
     -backward - 2
-    """
+    """    
     pkt_2_to_ren = generate_packet(routers['2'], routers['3'], communication_type, action, ID_KEY,service_public_key, service_name)
     pkt_1_to_2 = generate_packet(routers['1'], routers['2'], communication_type, pkt_2_to_ren, ID_KEY)
     pkt_client_to_1 = IP(tos = 0 ,src = UDP_ADDR[0], dst = routers['1']["router_ip"])/UDP(dport = routers['1']["router_port"], sport = UDP_ADDR[1])/Raw(load = ID_KEY+":"+pkt_1_to_2)
@@ -43,11 +43,15 @@ def generate_packet(src_router, dest_router, communication_type, data, ID_KEY,se
     """
     sym_key = onion_encryption_decryption.generate_sym_key()
     if service_public_key:
-        
+        """        
         enc_sym_key = onion_encryption_decryption.RSA_Encryption(sym_key, service_public_key)
         enc_data_service = onion_encryption_decryption.sym_encryption(ID_KEY +":"+data, sym_key)
         msg = enc_sym_key + enc_data_service
-        data = service_name + ":" + ID_KEY +":"+msg
+        print 'regular len: ',len(msg), 'new_len',len(onion_encryption_decryption.RSA_Encryption(ID_KEY +":"+data, service_public_key))
+        data1 = service_name + ":" + ID_KEY +":"+msg"""
+
+        a = onion_encryption_decryption.RSA_Encryption(ID_KEY +":"+data, service_public_key)
+        data = service_name + ":" + ID_KEY + ":" + a#onion_encryption_decryption.RSA_Encryption(ID_KEY +":"+data, service_public_key)
         id_packet = 1
     else:
         data = ID_KEY +":"+r'%s'%(data,)

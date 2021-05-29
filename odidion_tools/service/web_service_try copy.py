@@ -2,7 +2,7 @@ import time
 from service_tools import Service
 
 web_dir = r"C:\Users\yuval\Desktop\odidion\odidion\odidion_tools\service\website\my_first_flask.py"
-s = Service(web_dir)
+s = Service()#web_dir)
 
 if s.bind_and_set_service('W1',"10.0.0.10", 50023):
     print 'binded'

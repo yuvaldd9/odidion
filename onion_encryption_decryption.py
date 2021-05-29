@@ -8,7 +8,8 @@ import sys , os
 if sys.stdout != sys.__stdout__:
     sys.stdout = sys.__stdout__
 
-KEYS_LEN = 192#256#384
+KEYS_LEN = 128#192#256#384
+
 def generate_keys(MAIN_DIR, name):
     """
     create/ load the keys of the router
@@ -19,12 +20,12 @@ def generate_keys(MAIN_DIR, name):
      
     PRIVATE_KEY_DIR = "%s\keys\%s_private_key_%s.pem"%(MAIN_DIR,name,"PRIVATE_KEY",)
     PUBLIC_KEY_DIR = "%s\keys\%s_public_key_%s.pem"%(MAIN_DIR,name,"PUBLIC_KEY",)
-    
+    print PUBLIC_KEY_DIR
     if os.path.exists(repr(PRIVATE_KEY_DIR)) and os.path.exists(PUBLIC_KEY_DIR):
         PRIVATE_KEY = RSA.importKey(open(repr(PRIVATE_KEY_DIR) , 'rb')).export_key()
         PUBLIC_KEY = RSA.importKey(open(repr(PUBLIC_KEY_DIR), 'rb')).export_key()
     else:
-        keyPair = RSA.generate(256*6)
+        keyPair = RSA.generate(1024)
 
         PUBLIC_KEY = keyPair.publickey().export_key()
         PRIVATE_KEY = keyPair.exportKey()
@@ -34,18 +35,18 @@ def generate_keys(MAIN_DIR, name):
         public_key_file.close()
         
         private_key_file = open((PRIVATE_KEY_DIR),'wb')
-        private_key_file.write(PUBLIC_KEY)
+        private_key_file.write(PRIVATE_KEY)
         private_key_file.close()
         
 
 
-    return (keyPair.publickey().export_key(), keyPair.export_key())
+    return (PUBLIC_KEY, PRIVATE_KEY)
 
 def RSA_Decryption(hex_pkt, PRIVATE_KEY):
     """
     get the encrypted part of the packet and decrypt it.
     """
-    print len(hex_pkt), type(hex_pkt),'\nPKT: ', hex_pkt,"\n", len(bytes((hex_pkt))),'\n',bytes((hex_pkt))
+    #print len(hex_pkt), type(hex_pkt),'\nPKT: ', hex_pkt,"\n", len(bytes((hex_pkt))),'\n',bytes((hex_pkt))
     decryptor = PKCS1_OAEP.new(str_to_RSAKey(PRIVATE_KEY))
     decrypted_Packet = decryptor.decrypt((hex_pkt))
 
@@ -88,12 +89,11 @@ def encrypt_pkt(pkt, communication_type, sym_key, public_key):
 
     encrypted_pkt = sym_encryption((pkt), sym_key)
     encrypted_key_comm_header = RSA_Encryption(bytes(sym_key + str(communication_type)), public_key)
-
     return   encrypted_key_comm_header + encrypted_pkt
 
 def decrypt_data_service(data, PRIVATE_KEY):
-    print type(data)
-    print "UDP LOAD:\n",data
+    #print type(data)
+    #print "UDP LOAD:\n",data
     try:
         key_comm_header = data[:KEYS_LEN]
         dec_sym_key = onion_encryption_decryption.RSA_Decryption(key_comm_header,PRIVATE_KEY)
