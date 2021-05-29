@@ -43,11 +43,15 @@ def generate_packet(src_router, dest_router, communication_type, data, ID_KEY,se
     """
     sym_key = onion_encryption_decryption.generate_sym_key()
     if service_public_key:
-        
+        """        
         enc_sym_key = onion_encryption_decryption.RSA_Encryption(sym_key, service_public_key)
         enc_data_service = onion_encryption_decryption.sym_encryption(ID_KEY +":"+data, sym_key)
         msg = enc_sym_key + enc_data_service
-        data = service_name + ":" + ID_KEY +":"+msg
+        print 'regular len: ',len(msg), 'new_len',len(onion_encryption_decryption.RSA_Encryption(ID_KEY +":"+data, service_public_key))
+        data1 = service_name + ":" + ID_KEY +":"+msg"""
+
+        a = onion_encryption_decryption.RSA_Encryption(ID_KEY +":"+data, service_public_key)
+        data = service_name + ":" + ID_KEY + ":" + a#onion_encryption_decryption.RSA_Encryption(ID_KEY +":"+data, service_public_key)
         id_packet = 1
     else:
         data = ID_KEY +":"+r'%s'%(data,)

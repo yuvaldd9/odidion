@@ -10,7 +10,7 @@ scapy_sock = conf.L3socket()
 
 def divide_data(data):
     json_generator = json_handler.create_reply_json  #json_handler.web_header_json if is_web_header else 
-    len_of_data = int(128*1.5)
+    len_of_data = 45
     repeat_times = len(data)/len_of_data
     data_parts = []
     is_trail = 0

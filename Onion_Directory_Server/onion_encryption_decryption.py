@@ -19,7 +19,7 @@ def generate_keys(MAIN_DIR, name):
         PRIVATE_KEY = RSA.importKey(open(repr(PRIVATE_KEY_DIR) , 'rb')).export_key()
         PUBLIC_KEY = RSA.importKey(open(repr(PUBLIC_KEY_DIR), 'rb')).export_key()
     else:
-        keyPair = RSA.generate(256*6)
+        keyPair = RSA.generate(1024)
 
         PUBLIC_KEY = keyPair.publickey().export_key()
         PRIVATE_KEY = keyPair.exportKey()

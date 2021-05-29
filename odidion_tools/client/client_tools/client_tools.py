@@ -17,7 +17,7 @@ class ClientErrors(Exception):
     pass
 
 class Client():
-    def __init__(self, client_name, is_web_client=False):
+    def __init__(self, client_name, is_web_client=False, reqs_port=51000):
         self._running = threading.Event()
 
         self.timeout = None
@@ -30,13 +30,13 @@ class Client():
         self.first_time = True
 
         #client details
-        self.udp_ip = "192.168.1.26"#'192.168.1.22' #'192.168.43.207' #"192.168.1.26"
+        self.udp_ip ="10.0.0.10"#'192.168.1.22' #'192.168.43.207' #"10.0.0.5"
         self.udp_port = 50102
         self.sniff_filter = "udp port %s"%(self.udp_port, ) 
         self.udp_addr = (self.udp_ip, self.udp_port)
         
         #directory server socket details
-        self.dir_server_ip =  "192.168.1.26"#'192.168.0.100'#'192.168.1.22' #'192.168.43.207' #"192.168.1.26"
+        self.dir_server_ip = "10.0.0.10"#'192.168.0.100'#'192.168.1.22' #'192.168.43.207' #"10.0.0.5"
         self.dir_server_port = 50010
         self.bufsiz = 4096
         self.dir_server_addr = (self.dir_server_ip, self.dir_server_port)    
@@ -55,7 +55,10 @@ class Client():
         if self.is_web_client:
             self._running.set()
             self.reqs_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self.reqs_sock.bind(('', 51000))
+            self.reqs_port = reqs_port
+            self.reqs_sock.bind(('', self.reqs_port))
+            self.reqs_url = 'http://localhost:%s/'%(self.reqs_port,)
+            print self.reqs_url
             self.reqs_sock.listen(2)
             threading.Thread(target=self._handle_web_reqs).start()
 
@@ -121,6 +124,7 @@ class Client():
         for i in xrange(self.splitted_data['End']):
             self.data_from_service += (self.splitted_data[i])
         self.splitted_data = {}
+        print self.data_from_service
         return True
 
     def send_packets(self, data_parts):
@@ -129,13 +133,14 @@ class Client():
         communication_type = self.communication_details["communication_type"]
         routers = self.communication_details["routers"]
         service_serial_num = str(self.communication_details["serial_number"])
-        
+
         for i, part in enumerate(data_parts):
-                pkt = onion_packet_handler.create_onion_packet(routers, service_public_key, communication_type, part,\
-                                                                self.udp_addr, service_serial_num, self.id_key)
-                new_pkt = IP(pkt.build())
-                self.scapy_sock.send(new_pkt)
-                time.sleep(0.1)
+            pkt = onion_packet_handler.create_onion_packet(routers, service_public_key, communication_type, part,\
+                                                            self.udp_addr, service_serial_num, self.id_key)
+            new_pkt = IP(pkt.build())
+            self.scapy_sock.send(new_pkt)
+
+  
 
     def send(self, data):
         """
@@ -144,7 +149,7 @@ class Client():
         self.data_to_send.append(data)
 
     def send_req(self, method):
-        req = requests.get('http://localhost:51000/')
+        req = requests.get(self.reqs_url)
         return req
   
     def wait_for_data(self):
@@ -196,7 +201,7 @@ class Client():
 
     def _divide_data(self, data):
         
-        len_of_data = 9
+        len_of_data = 30
         repeat_times = len(data)/len_of_data
         data_parts = []
         trail_counter = 0 
@@ -225,6 +230,7 @@ class Client():
                 pass
             else:
                 self.communication_details = data["args"]
+                print self.communication_details
                 break
         self.server_sock.close()
 
@@ -235,7 +241,7 @@ class Client():
             self.splitted_data = {}
             print 'yep'
             if self.is_web_client:
-                webbrowser.open('http://localhost:51000/')
+                webbrowser.open(self.reqs_url)
             return True
         return False
             

@@ -50,3 +50,8 @@ class service:
                                     '''%(self.special_key, self.service_name)), VB.GENERAL_DATA)
     def disconnect(self):
         VB.print_data(db.set_data(service.db_dir, '''DELETE FROM services WHERE service_name = \'%s\''''%(self.service_name,), VB.GENERAL_DATA))
+
+    def change_ren(self, ren_details):
+        self.ren_name = ren_details["ren_name"]
+        self.ren_ip = ren_details["ren_ip"]
+        VB.print_data(db.set_data(service.db_dir, '''UPDATE services SET ren_ip = \'%s\', ren_name = \'%s\' WHERE service_name = \'%s\''''%(self.ren_ip, self.ren_name, self.service_name)), VB.GENERAL_DATA)

@@ -18,7 +18,7 @@ class Service():
         self.udp_port = None
         self.bufsiz = None
 
-        self.dir_server_ip = "192.168.1.26"
+        self.dir_server_ip ="10.0.0.10"
         self.dir_server_port = 50010 
         self.dir_server_addr = (self.dir_server_ip, self.dir_server_port)
 
@@ -141,10 +141,7 @@ class Service():
         
         while True:
             data, addr = self.service_sock.recvfrom(60000) # buffer size is 1024 bytes
-            print data
-            print '---------------------------------------------q'
             dec_json = onion_encryption_decryption.decrypt_data_service(data, self.private_key)
-            print dec_json
             seperator = dec_json.index(':')
             id_key = dec_json[:seperator]
             
@@ -154,6 +151,7 @@ class Service():
             }
             
             msg = json.loads(dec_json[seperator+1:])
+            print msg
             #msg = eval(dec_json[seperator+1:])
             if msg["sn"] != "End":
                 self.messages[id_key][msg["sn"]] = (msg)

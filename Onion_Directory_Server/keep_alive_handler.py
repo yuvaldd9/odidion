@@ -23,6 +23,7 @@ response:
         }
 }
 """
+
 import database_handler as db
 import onion_routing
 import time
@@ -68,7 +69,10 @@ def response_keep_alive(router_name):
         }
         
         json_args = response_op[SERVICES_UPDATES[router_name][0]]
-    
+
+        if SERVICES_UPDATES[router_name][0] == SERVICE_REGISTER:
+            CONNECTED_ROUTERS[router_name].add_service(service_details)
+
     return (ONION_ROUTER_KEEP_ALIVE, STATE_KEEP_ALIVE, json_args)
 
 
@@ -77,19 +81,22 @@ def check_avaiable_routers(routers):
     set the unavaiable routers as offline
     returns the online routers
     """
-    offline = filter(lambda router_details:  time.time() - float(router_details[5]) > 100,\
-                                routers)
+    offline = filter(lambda router_details:  time.time() - float(router_details[5]) > 5 , routers)
     online = list(set(routers) - set(offline))
     offline_names = map(lambda router_details:  router_details[0], offline)
 
     for router_name in offline_names:
+        print 'ROUTER OFF _______________________ ', router_name
         CONNECTED_ROUTERS[router_name].close_router()
         router_services = CONNECTED_ROUTERS[router_name].get_router_services()
-        for service_name, service_details in router_services.items():
-            ren_details = onion_routing.choose_ren_point()
-            changed_service = service(service_details, ren_details, SERVICES_DB_DIR)
-            SERVICES_UPDATES[ren_details["ren_name"]] = changed_service
         del CONNECTED_ROUTERS[router_name]
-    
+
+        for service_name in router_services:
+            ren_details = onion_routing.choose_ren_point()
+            #changed_service = service(service_details, ren_details, SERVICES_DB_DIR, False)
+            SERVICES[service_name].change_ren(ren_details)
+            SERVICES_UPDATES[ren_details["ren_name"]] = (SERVICE_REGISTER ,SERVICES[service_name])
+        time.sleep(4) #update time!
+        
     return online
 

@@ -19,7 +19,7 @@ def create_json(service_name):
         "args" : {"service_name": service_name}
     })
 def recieve_json(json_data):
-    return eval(json_data)#json.loads(json_data)
+    return json.loads(json_data)
 
 def create_service_json(data, serial_num):
     return json.dumps({

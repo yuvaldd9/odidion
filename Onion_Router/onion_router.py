@@ -1,4 +1,3 @@
-from scapy.all import *
 import socket
 import thread
 import sys , os
@@ -9,6 +8,8 @@ import json_handler
 import json
 import re
 import global_variables
+
+from scapy.all import *
 
 def create_databases():
     """
@@ -62,7 +63,9 @@ def add_service(service_details):
         return global_variables.SERIAL_NUM_SERVICES
     return False
 def delete_service(service_details):
-    return db.set_data(global_variables.SERVICES_DB_DIR,'''DELETE FROM services WHERE service_name = \'%s\''''%(service_details["service_name"]))
+    global_variables.VB.print_data("SERVICE DELETED SUCCESSFULLY", 0)
+    global_variables.LOAD_LEVEL -= 1
+    return str(db.set_data(global_variables.SERVICES_DB_DIR,'''DELETE FROM services WHERE service_name = \'%s\''''%(service_details["service_name"])))
 def handle_keep_alive(server_sock):
     """
     handle the keep alive connection between the server
@@ -77,6 +80,7 @@ def handle_keep_alive(server_sock):
 
             msg = json_handler.create_json(json_handler.ONION_ROUTER_KEEP_ALIVE, keep_alive_details)
             global_variables.VB.print_data(msg, global_variables.VB.KEEP_ALIVE)
+            print msg
             server_sock.send(msg)
             d = server_sock.recv(global_variables.BUFSIZ)
 
@@ -92,16 +96,15 @@ def handle_keep_alive(server_sock):
                 keep_alive_details["load"] = global_variables.LOAD_LEVEL
                 global_variables.SERIAL_NUM_SERVICES += 1
             elif "delete_service" in data["args"].keys():
-                #TODO
                 keep_alive_details["service_deleted"] = delete_service(data["args"]["delete_service"])
-                
+                keep_alive_details["load"] = global_variables.LOAD_LEVEL
             else:
                 if "service_added" in keep_alive_details.keys():
                     del keep_alive_details["service_added"]
-                elif "delete_service" in keep_alive_details.keys():
+                if "service_deleted" in keep_alive_details.keys():
                      del keep_alive_details["service_deleted"]
 
-            time.sleep(5)
+            time.sleep(4)
         except Exception as e:
             global_variables.VB.print_data(e, global_variables.VB.ERRORS)
             break
@@ -164,7 +167,8 @@ def handle_packet(onion_pkt):
             client_data = bytes(udp_data[seperator_index +1:])
             
             next_pkt = IP(dst = global_variables.ROUTING_PROCESSES[id_key]['ip'], tos = 2)\
-                            /UDP(dport = global_variables.ROUTING_PROCESSES[id_key]['port'])/Raw(load = id_key + ':' + client_data)
+                            /UDP(sport= global_variables.CLIENTS_PORT ,dport = global_variables.ROUTING_PROCESSES[id_key]['port'])\
+                            /Raw(load = udp_data)#id_key + ':' + client_data)
 
             scapy_sock.send(next_pkt)
             

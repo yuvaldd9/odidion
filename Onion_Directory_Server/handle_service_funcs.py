@@ -27,12 +27,13 @@ def register_service(details_dict):
     return SERVICE_REGISTER, STATE_SUCCEED, None
 
 def disconnect_service(details_dict):
-    if db.check_if_value_exist(SERVICES_DB_DIR, 'services', 'service_name', details_dict["service_name"]):
+    if not db.check_if_value_exist(SERVICES_DB_DIR, 'services', 'service_name', details_dict["service_name"]):
         return SERVICE_DISCONNECT, STATE_FAILED, None
     print details_dict
     service_name = details_dict["service_name"]
     service_obj = SERVICES[service_name]
-    real_special_key = db.get_data(SERVICES_DB_DIR, 'SELECT special_key from services')
+    real_special_key = db.get_data(SERVICES_DB_DIR, 'SELECT special_key from services')[0][0]
+    print real_special_key
     if real_special_key == details_dict["special_key"]:
         VB.print_data( '[Disconnecting Service:%s]'%(service_name,), VB.REGISTER)
         ren_details = service_obj.get_ren_name()
