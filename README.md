@@ -1,4 +1,3 @@
-# odidion
 
 
 Cyber final project
@@ -16,13 +15,13 @@ Table of Contents
 1 Introduction	3
 2 Theory	4
 3 Final Product	8
-4 The project-writing process	17
-5 Solution Components	19
-6 Testing Scenarios	26
-7 Reflection	27
-8 Instructions for installation and operation	28
-9 Bibliography	29
-10 Appendix	29
+4 The project-writing process	16
+5 Solution Components	18
+6 Testing Scenarios	25
+7 Reflection	26
+8 Instructions for installation and operation	27
+9 Bibliography	28
+10 Appendix	28
 
 
 
@@ -186,8 +185,9 @@ ADMIN VIEW:
 As my project is an anonymous platform, the main Graphical interface is the dashboard. The services that use this platform host they own GUI, and considered separately.
 
  
-Not very nice…
-You will never understand my design attitude – Only one person have access to this interface and it's me so I know the best what good for me 😊
+
+
+
 1)	Router View: 
 2)	Log View:
 
@@ -200,10 +200,7 @@ You will never understand my design attitude – Only one person have access to 
 
 
 
-
 3)	Services Condition/ Dashboard:
-
-Missing an  examples of platform services, and the output #the services are in console design
 4 The project-writing process
 4.1	The process
 In the beginning, the project was started with more planning than coding. Besides the roadmap, I had to plan and design the network and the databases structures of all network elements (directory server, onion routers, services, and clients). Besides the onion routing scheme, I wanted to stick to the following principles such as anonymity and privacy across my network.
@@ -226,29 +223,16 @@ The project focuses on the following fields:
 •	Text Protocols – JSON format
 •	DATABASE – the data in the project is saved in an SQL database, dictionaries, and tuples.
 •	Coding Standards – Client-Server architecture and OPP (class –base) implementation
-5.2	Environmental requirements
+5.2	Topological view
+
+
+
+
+
+
+5.3	Environmental requirements
 •	Python 2.7 
-•	The following modules 
-o	Scapy
-o	JSON
-o	pycryptodome and fernet modules
-
-
-
-
-
-5.3	Topological view
-Where is ADMIN #THERE IS NO ADMIN
-Some explanation on the diagram #IN THE DIAGRAM
-
-
-
-
-
-
-
-
-
+•	The following modules – Scapy, JSON, pycryptodome and fernet modules
 5.4	Data structure definition
 The main data structures of each Onion Router:
 Dictionary –SERVICES
@@ -300,6 +284,7 @@ The database:
 The following database contains data about the services that the onion router represents.
 The database:
 
+ 
 5.6	Modular view
 The project comprises of 3 entities:
 Directory server:
@@ -366,7 +351,7 @@ Output: the function iterates the received data from the client and its id_key	T
 •	2 services that are registered to the network – FTP server, website.
 •	2 clients who are communicating with one of those 2 services.
 
-
+ 
 7 Reflection
 7.1	Time table
 Month	Implementation	Research
@@ -419,7 +404,7 @@ What did you learn about your self?
 What about writing in English?
 8 Instructions for installation and operation
 8.1	Configuration and prerequisites 
-There are no special configuration and prerequisites yet
+There are no special configuration or prerequisites 
 8.2	Installation
 •	Scapy
 •	Install JSON module
@@ -428,9 +413,7 @@ There are no special configuration and prerequisites yet
 9 Bibliography
 
 
-Missing
-Tor technology - https://gitlab.torproject.org/tpo/team/-/wikis/home
-
+•	Tor technology - https://gitlab.torproject.org/tpo/team/-/wikis/home
 THERE WERE NO MUCH SOURCES EXCEPT TO THE OFFICIAL TOR PROJECT WEBSITE
 
 10 Appendix
